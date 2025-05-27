@@ -39,7 +39,7 @@ jobs:
             --target lib/main.dart
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: app-${{ github.event.inputs.company_id }}
           path: build/app/outputs/flutter-apk/app-${{ github.event.inputs.company_id }}.apk
