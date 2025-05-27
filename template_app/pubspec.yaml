@@ -1,18 +1,16 @@
-name: {{APP_SLUG}}       # ex: minha-empresa-teste-ltda
-description: "Template de app para empresas"
-publish_to: "none"
+name: template_app
+description: A Flutter template app.
+publish_to: 'none'
+version: 1.0.0+1
 
 environment:
-  sdk: ">=2.18.0 <3.0.0"
+  sdk: '>=2.18.0 <3.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
+  cupertino_icons: ^1.0.2
 
-  cupertino_icons: ^1.0.8
-
-flutter:
-  uses-material-design: true
-
-  assets:
-  
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
