@@ -8,17 +8,14 @@ on:
         required: true
         type: number
 
-# variáveis de ambiente disponíveis em TODOS os steps:
-env:
-  DATABASE_URL:  ${{ secrets.DATABASE_URL }}
-  GITHUB_TOKEN:  ${{ secrets.GITHUB_TOKEN }}
-  REPO_OWNER:    ${{ secrets.REPO_OWNER }}
-  REPO_NAME:     ${{ secrets.REPO_NAME }}
-  WORKFLOW_FILE: ${{ secrets.WORKFLOW_FILE }}
-
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    # Faz com que todos os run: sejam dentro de template_app/
+    defaults:
+      run:
+        working-directory: template_app
 
     steps:
       - name: Checkout repository
@@ -29,18 +26,18 @@ jobs:
         with:
           channel: stable
 
-
       - name: Get pub dependencies
         run: flutter pub get
 
       - name: Build APK
-        run: |
-          flutter build apk \
-            --flavor ${{ github.event.inputs.company_id }} \
-            --target lib/main.dart
+        run: flutter build apk \
+               --release \
+               --flavor ${{ github.event.inputs.company_id }} \
+               --target lib/main.dart
 
+      # Descomente este bloco depois de confirmar que o build roda sem erros
       #- name: Upload APK artifact
-      #  uses: actions/upload-artifact@v3.1.2
+      #  uses: actions/upload-artifact@v3
       #  with:
       #    name: app-${{ github.event.inputs.company_id }}
       #    path: build/app/outputs/flutter-apk/app-${{ github.event.inputs.company_id }}.apk
