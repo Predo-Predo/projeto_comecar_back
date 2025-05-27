@@ -30,7 +30,7 @@ jobs:
         run: flutter build apk --release --target lib/main.dart
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@0f45848018be9a5c5a0f2c1e6c23e65b7ce77f23
+        uses: actions/upload-artifact@v1
         with:
           name: app-${{ github.event.inputs.company_id }}
           path: build/app/outputs/flutter-apk/app-release.apk
