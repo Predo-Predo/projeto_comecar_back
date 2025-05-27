@@ -31,12 +31,10 @@ jobs:
       - name: Build APK
         run: flutter build apk --release --target lib/main.dart
 
-      # depois de validar que isso passa, você pode re-adicionar o flavor:
-      # run: flutter build apk --release --flavor ${{ github.event.inputs.company_id }} --target lib/main.dart
-
-      # e, enfim, reativar o upload:
-      # - name: Upload APK artifact
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: app-${{ github.event.inputs.company_id }}
-      #     path: build/app/outputs/flutter-apk/app-release.apk
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v2
+        with:
+          # Dá nome único para cada empresa
+          name: app-${{ github.event.inputs.company_id }}
+          # Caminho padrão do APK release
+          path: build/app/outputs/flutter-apk/app-release.apk
