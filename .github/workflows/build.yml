@@ -12,7 +12,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # Faz com que todos os run: sejam dentro de template_app/
     defaults:
       run:
         working-directory: template_app
@@ -30,14 +29,14 @@ jobs:
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk \
-               --release \
-               --flavor ${{ github.event.inputs.company_id }} \
-               --target lib/main.dart
+        run: flutter build apk --release --target lib/main.dart
 
-      # Descomente este bloco depois de confirmar que o build roda sem erros
-      #- name: Upload APK artifact
-      #  uses: actions/upload-artifact@v3
-      #  with:
-      #    name: app-${{ github.event.inputs.company_id }}
-      #    path: build/app/outputs/flutter-apk/app-${{ github.event.inputs.company_id }}.apk
+      # depois de validar que isso passa, você pode re-adicionar o flavor:
+      # run: flutter build apk --release --flavor ${{ github.event.inputs.company_id }} --target lib/main.dart
+
+      # e, enfim, reativar o upload:
+      # - name: Upload APK artifact
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: app-${{ github.event.inputs.company_id }}
+      #     path: build/app/outputs/flutter-apk/app-release.apk
