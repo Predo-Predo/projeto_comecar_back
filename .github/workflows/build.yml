@@ -1,0 +1,37 @@
+name: Build Flutter App
+
+on:
+  workflow_dispatch:
+    inputs:
+      company_id:
+        description: 'ID da empresa para o flavor'
+        required: true
+        type: number
+
+jobs:
+  build:
+    # Escolha o runner apropriado; para iOS/mac você precisa de macos-latest
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      - name: Get pub dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        # Supondo que você use o slug como flavor
+        run: flutter build apk --flavor ${{ github.event.inputs.company_id }} \
+             --target lib/main.dart
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-${{ github.event.inputs.company_id }}
+          path: build/app/outputs/flutter-apk/app-${{ github.event.inputs.company_id }}.apk
