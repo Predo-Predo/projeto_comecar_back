@@ -11,14 +11,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     defaults:
       run:
         working-directory: template_app
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -32,9 +30,7 @@ jobs:
         run: flutter build apk --release --target lib/main.dart
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@0f45848018be9a5c5a0f2c1e6c23e65b7ce77f23
         with:
-          # Dá nome único para cada empresa
           name: app-${{ github.event.inputs.company_id }}
-          # Caminho padrão do APK release
           path: build/app/outputs/flutter-apk/app-release.apk
