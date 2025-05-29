@@ -1,15 +1,16 @@
 name: Build Flutter App
 
-# 1) Dá permissão de leitura nos conteúdos e escrita nas actions/artifacts
+# 1) Permissões necessárias para checkout, build e upload de artifacts
 permissions:
-  contents: read
-  actions: write
+  contents: read        # ler o repositório
+  actions: write        # disparar workflows, baixar actions
+  artifacts: write      # enviar artifacts pro servidor
 
 on:
   workflow_dispatch:
     inputs:
       company_id:
-        description: 'ID da empresa para o flavor'
+        description: 'ID da empresa (flavor) para o build'
         required: true
         type: number
 
@@ -19,7 +20,6 @@ jobs:
 
     defaults:
       run:
-        # aponte aqui para a pasta onde está o seu Flutter (se for template_app)
         working-directory: template_app
 
     steps:
@@ -47,7 +47,7 @@ jobs:
           ls -R build/app/outputs/flutter-apk
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3.1.2
         with:
           name: app-${{ github.event.inputs.company_id }}
-          path: build/app/outputs/flutter-apk/*.apk
+          path: build/app/outputs/flutter-apk/**/*.apk
