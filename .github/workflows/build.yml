@@ -8,11 +8,13 @@ on:
         required: true
         type: number
 
-# Permissões usadas pelo workflow inteiro
+# ----------------------------
+#     Nível raiz (root)
+# ----------------------------
 permissions:
-  contents: read      # permite checkout
-  actions: write      # permite disparar outras Actions se necessário
-  artifacts: write    # permite usar upload-artifact@v3
+  contents: read     # checkout
+  actions: write     # uso de outras Actions se necessário
+  artifacts: write   # upload de artefatos
 
 jobs:
   build:
