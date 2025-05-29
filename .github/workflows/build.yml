@@ -4,15 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       company_id:
-        description: 'ID da empresa (flavor) para o build'
+        description: 'ID da empresa para o flavor'
         required: true
         type: number
-
-# permissões do workflow (nível raiz)
-permissions:
-  contents: read     # checkout
-  actions: write     # uso de outras actions, se necessário
-  artifacts: write   # upload de artifacts
 
 jobs:
   build:
@@ -36,9 +30,3 @@ jobs:
 
       - name: Build APK
         run: flutter build apk --release --target lib/main.dart
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: app-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
