@@ -8,15 +8,15 @@ on:
         required: true
         type: number
 
+# Permissões usadas pelo workflow inteiro
+permissions:
+  contents: read      # permite checkout
+  actions: write      # permite disparar outras Actions se necessário
+  artifacts: write    # permite usar upload-artifact@v3
+
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    # PERMISSIONS do job: autoriza checkout, uso de actions e upload de artifacts
-    permissions:
-      contents: read
-      actions: write
-      artifacts: write
 
     defaults:
       run:
@@ -35,19 +35,10 @@ jobs:
         run: flutter pub get
 
       - name: Build APK
-        run: |
-          flutter build apk \
-            --release \
-            --flavor ${{ github.event.inputs.company_id }} \
-            --target lib/main.dart
-
-      - name: Show APK files for debug
-        run: |
-          echo "Conteúdo de build/app/outputs/flutter-apk:"
-          ls -R build/app/outputs/flutter-apk
+        run: flutter build apk --release --target lib/main.dart
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v3
         with:
-          name: app-${{ github.event.inputs.company_id }}
-          path: build/app/outputs/flutter-apk/**/*.apk
+          name: app-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
