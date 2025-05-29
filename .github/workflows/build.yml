@@ -1,5 +1,10 @@
 name: Build Flutter App
 
+# 1) Dá permissão de leitura nos conteúdos e escrita nas actions/artifacts
+permissions:
+  contents: read
+  actions: write
+
 on:
   workflow_dispatch:
     inputs:
@@ -14,7 +19,7 @@ jobs:
 
     defaults:
       run:
-        # Ajuste aqui se o seu main.dart / pubspec.yaml estiverem dentro de template_app
+        # aponte aqui para a pasta onde está o seu Flutter (se for template_app)
         working-directory: template_app
 
     steps:
@@ -30,19 +35,19 @@ jobs:
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk \
-               --release \
-               --flavor ${{ github.event.inputs.company_id }} \
-               --target lib/main.dart
-
-      - name: Show APK directory contents
         run: |
-          echo "Listando conteúdo de build/app/outputs/flutter-apk"
+          flutter build apk \
+            --release \
+            --flavor ${{ github.event.inputs.company_id }} \
+            --target lib/main.dart
+
+      - name: Show APK files for debug
+        run: |
+          echo "Conteúdo de build/app/outputs/flutter-apk:"
           ls -R build/app/outputs/flutter-apk
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: app-${{ github.event.inputs.company_id }}
-          # wildcard para garantir que qualquer APK gerado seja enviado
           path: build/app/outputs/flutter-apk/*.apk
