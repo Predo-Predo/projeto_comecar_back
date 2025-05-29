@@ -14,6 +14,7 @@ jobs:
 
     defaults:
       run:
+        # Ajuste aqui se o seu main.dart / pubspec.yaml estiverem dentro de template_app
         working-directory: template_app
 
     steps:
@@ -29,4 +30,19 @@ jobs:
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk --release --target lib/main.dart
+        run: flutter build apk \
+               --release \
+               --flavor ${{ github.event.inputs.company_id }} \
+               --target lib/main.dart
+
+      - name: Show APK directory contents
+        run: |
+          echo "Listando conteúdo de build/app/outputs/flutter-apk"
+          ls -R build/app/outputs/flutter-apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-${{ github.event.inputs.company_id }}
+          # wildcard para garantir que qualquer APK gerado seja enviado
+          path: build/app/outputs/flutter-apk/*.apk
