@@ -45,7 +45,7 @@ jobs:
           ls -R build/app/outputs/flutter-apk
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: app-${{ github.event.inputs.company_id }}
           path: template_app/build/app/outputs/flutter-apk/*.apk
