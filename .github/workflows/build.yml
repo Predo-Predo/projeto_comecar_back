@@ -12,11 +12,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # aqui embaixo a permissão correta, dentro do job
     permissions:
-      contents: read     # lê o repositório
-      actions: write     # disparo programático
-      artifacts: write   # permite upload de artifacts
+      contents: read    # permite fazer checkout
+      actions: write    # disparo programático & upload-artifact
 
     defaults:
       run:
