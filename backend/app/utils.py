@@ -1,24 +1,14 @@
 import os
 import shutil
+from pathlib import Path
 from slugify import slugify
 
-# ---------------------------------------------------
-# Resolve caminhos absolutos a partir deste arquivo
-# ---------------------------------------------------
-THIS_FILE = os.path.abspath(__file__)
-APP_DIR   = os.path.dirname(THIS_FILE)       # backend/app
-BACKEND   = os.path.dirname(APP_DIR)         # backend
-ROOT_DIR  = os.path.dirname(BACKEND)         # raiz do projeto
+# Ajuste BASE_DIR para apontar para a pasta raiz do repositório
+BASE_DIR     = Path(__file__).resolve().parents[2]
+TEMPLATE_DIR = BASE_DIR / "template_app"
+DEST_ROOT    = BASE_DIR / "empresas"
 
-# ---------------------------------------------------
-# Diretórios de template e destino
-# ---------------------------------------------------
-TEMPLATE_DIR = os.path.join(ROOT_DIR, "template_app")
-DEST_ROOT    = os.path.join(ROOT_DIR, "empresas")
-
-# ---------------------------------------------------
-# Arquivos onde faremos placeholder replacement
-# ---------------------------------------------------
+# Arquivos que terão placeholders substituídos
 PLACEHOLDER_FILES = [
     "pubspec.yaml",
     os.path.join("lib", "main.dart"),
@@ -27,26 +17,24 @@ PLACEHOLDER_FILES = [
     os.path.join("ios", "Runner", "Info.plist"),
 ]
 
-def prepare_project(company_id: int, company_name: str, bundle_id: str) -> str:
+def prepare_project(company_name: str, bundle_id: str) -> str:
     """
-    1) Gera slug (ex: "minha-empresa")
-    2) Monta pasta destino como: empresas/{company_id}-{slug}/
-    3) Copia template_app → empresas/{company_id}-{slug}/ (se ainda não existir)
-    4) Substitui {{APP_SLUG}}, {{APP_NAME}}, {{BUNDLE_ID}}
-    5) Retorna o nome da pasta criada (ex: "5-minha-empresa")
+    1) Gera slug a partir do nome da empresa
+    2) Copia todo o template_app/ → empresas/<slug>/
+    3) Substitui {{APP_SLUG}}, {{APP_NAME}} e {{BUNDLE_ID}} nos arquivos listados
+    4) Retorna o slug gerado
     """
-    # 1) cria slug
     slug = slugify(company_name, lowercase=True)
+    dest = DEST_ROOT / slug
 
-    # 2) nome único por empresa
-    folder_name = f"{company_id}-{slug}"
-    dest = os.path.join(DEST_ROOT, folder_name)
+    # Se já existe, remove para recriar
+    if dest.exists():
+        shutil.rmtree(dest)
 
-    # 3) copia apenas se não existir
-    if not os.path.exists(dest):
-        shutil.copytree(TEMPLATE_DIR, dest)
+    # Copia árvore de arquivos
+    shutil.copytree(TEMPLATE_DIR, dest)
 
-    # 4) placeholders
+    # Faz o replace de placeholders
     placeholders = {
         "{{APP_SLUG}}": slug,
         "{{APP_NAME}}": company_name,
@@ -54,14 +42,12 @@ def prepare_project(company_id: int, company_name: str, bundle_id: str) -> str:
     }
 
     for rel_path in PLACEHOLDER_FILES:
-        file_path = os.path.join(dest, rel_path)
-        if not os.path.isfile(file_path):
+        file_path = dest / rel_path
+        if not file_path.is_file():
             continue
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
+        content = file_path.read_text(encoding="utf-8")
         for key, val in placeholders.items():
             content = content.replace(key, val)
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(content)
+        file_path.write_text(content, encoding="utf-8")
 
-    return folder_name
+    return slug
