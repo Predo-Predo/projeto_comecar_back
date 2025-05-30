@@ -1,5 +1,9 @@
 name: Build Flutter App
 
+permissions:
+  contents: read
+  actions: write
+
 on:
   workflow_dispatch:
     inputs:
@@ -29,4 +33,19 @@ jobs:
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk --release --target lib/main.dart
+        run: |
+          flutter build apk \
+            --release \
+            --flavor ${{ github.event.inputs.company_id }} \
+            --target lib/main.dart
+
+      - name: Show APK files for debug
+        run: |
+          echo "Conteúdo de template_app/build/app/outputs/flutter-apk:"
+          ls -R build/app/outputs/flutter-apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-${{ github.event.inputs.company_id }}
+          path: template_app/build/app/outputs/flutter-apk/*.apk
