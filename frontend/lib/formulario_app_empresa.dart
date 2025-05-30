@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class FormularioAppEmpresa extends StatefulWidget {
-  const FormularioAppEmpresa({Key? key}) : super(key: key);
+  final int companyId;
+   const FormularioAppEmpresa({Key? key, required this.companyId}) : super(key: key);
 
   @override
   _FormularioAppEmpresaState createState() => _FormularioAppEmpresaState();

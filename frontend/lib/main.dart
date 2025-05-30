@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'login_page.dart';
 import 'formulario_app_empresa.dart';
 
 void main() {
@@ -14,9 +15,20 @@ class MyApp extends StatelessWidget {
       title: 'Demo Frontend',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.teal,
+        inputDecorationTheme: const InputDecorationTheme(
+          border: UnderlineInputBorder(),
+        ),
       ),
-      home: const FormularioAppEmpresa(),
+      // Rotas nomeadas
+      routes: {
+        '/': (ctx) => const LoginPage(),
+        '/formulario_app': (ctx) {
+          final companyId = ModalRoute.of(ctx)!.settings.arguments as int;
+          return FormularioAppEmpresa(companyId: companyId);
+        },
+      },
+      initialRoute: '/',
     );
   }
 }
