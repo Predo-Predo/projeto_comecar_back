@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'assinatura_empresa/formulario_assinatura_empresa.dart';
+import 'formulario_assinatura_empresa.dart';
 
 
 void main() {
