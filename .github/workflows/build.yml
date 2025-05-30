@@ -8,15 +8,15 @@ on:
         required: true
         type: number
 
-# Permissões de token para este workflow
-permissions:
-  contents: read       # Leitura do código
-  actions: write       # Necessário para workflow_dispatch programático
-  artifacts: write     # Permite upload de artifacts
-
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    # aqui embaixo a permissão correta, dentro do job
+    permissions:
+      contents: read     # lê o repositório
+      actions: write     # disparo programático
+      artifacts: write   # permite upload de artifacts
 
     defaults:
       run:
