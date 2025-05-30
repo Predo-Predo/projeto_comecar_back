@@ -1,5 +1,6 @@
 name: Build Flutter App
 
+# 1) Disparo manual via API
 on:
   workflow_dispatch:
     inputs:
@@ -8,33 +9,40 @@ on:
         required: true
         type: number
 
+# 2) Permissões do token
+permissions:
+  contents: read   # permite checkout
+  actions: write   # dá permissão pra workflow_dispatch e upload-artifact
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: read    # permite fazer checkout
-      actions: write    # disparo programático & upload-artifact
-
+    # 3) Executa tudo dentro da pasta template_app
     defaults:
       run:
         working-directory: template_app
 
     steps:
+      # 4) Faz checkout do repositório
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # 5) Instala o Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
 
+      # 6) Baixa dependências
       - name: Get pub dependencies
         run: flutter pub get
 
+      # 7) Compila o APK
       - name: Build APK
         run: flutter build apk --release --target lib/main.dart
 
+      # 8) Envia o APK gerado como artefato para download
       - name: Upload APK artifact
         uses: actions/upload-artifact@v3
         with:
