@@ -8,10 +8,6 @@ on:
         required: true
         type: number
 
-permissions:                # ← nível de root do workflow
-  contents: read
-  actions: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -34,9 +30,3 @@ jobs:
 
       - name: Build APK
         run: flutter build apk --release --target lib/main.dart
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: flutter-app-release
-          path: build/app/outputs/flutter-apk/app-release.apk
