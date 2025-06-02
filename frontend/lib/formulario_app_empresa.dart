@@ -4,12 +4,10 @@ import 'package:http/http.dart' as http;
 
 class FormularioAppEmpresaPage extends StatefulWidget {
   final int empresaId;
-  const FormularioAppEmpresaPage({Key? key, required this.empresaId})
-      : super(key: key);
+  const FormularioAppEmpresaPage({Key? key, required this.empresaId}) : super(key: key);
 
   @override
-  _FormularioAppEmpresaPageState createState() =>
-      _FormularioAppEmpresaPageState();
+  State<FormularioAppEmpresaPage> createState() => _FormularioAppEmpresaPageState();
 }
 
 class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
@@ -19,18 +17,39 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
   final _appleTeamCtrl = TextEditingController();
   final _appleKeyCtrl = TextEditingController();
   final _appleIssuerCtrl = TextEditingController();
-  int? _templateSelecionadoId;
 
-  bool _submetendo = false;
+  bool _submitting = false;
+  int? _templateSelecionado;
+  List<Map<String, dynamic>> _templates = [];
 
-  final List<Map<String, dynamic>> _templates = [
-    {"id": 1, "nome": "Delivery"},
-    {"id": 2, "nome": "Financeiro"},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _carregarTemplates();
+  }
 
-  Future<void> _enviar() async {
+  Future<void> _carregarTemplates() async {
+    try {
+      final resp = await http.get(Uri.parse('http://127.0.0.1:8000/templates/'));
+      if (resp.statusCode == 200) {
+        final List data = jsonDecode(resp.body);
+        setState(() {
+          _templates = data.map<Map<String, dynamic>>((t) => {
+            "id": t["id"],
+            "nome": t["nome"]
+          }).toList();
+        });
+      } else {
+        throw Exception('Erro ao carregar templates');
+      }
+    } catch (e) {
+      print("Erro ao carregar templates: $e");
+    }
+  }
+
+  Future<void> _submitApp() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _submetendo = true);
+    setState(() => _submitting = true);
 
     final body = {
       "empresa_id": widget.empresaId,
@@ -39,7 +58,7 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
       "apple_team_id": _appleTeamCtrl.text.trim(),
       "apple_key_id": _appleKeyCtrl.text.trim(),
       "apple_issuer_id": _appleIssuerCtrl.text.trim(),
-      "template_id": _templateSelecionadoId
+      "template_id": _templateSelecionado,
     };
 
     final resp = await http.post(
@@ -48,11 +67,11 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
       body: jsonEncode(body),
     );
 
-    setState(() => _submetendo = false);
+    setState(() => _submitting = false);
 
     if (resp.statusCode == 201) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Aplicativo criado com sucesso!')),
+        SnackBar(content: Text('App criado com sucesso!')),
       );
       Navigator.of(context).pop();
     } else {
@@ -80,18 +99,16 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
     return Scaffold(
       backgroundColor: Colors.teal.shade50,
       appBar: AppBar(
-        title: Text('Configurar Aplicativo'),
-        centerTitle: true,
+        title: Text('Configurar App'),
         backgroundColor: Colors.teal,
-        elevation: 0,
+        centerTitle: true,
       ),
       body: Center(
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 24),
           child: Card(
             elevation: 6,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
               padding: EdgeInsets.all(24),
               child: Form(
@@ -99,64 +116,53 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   _buildField(controller: _logoCtrl, label: 'Logo (URL)'),
                   SizedBox(height: 16),
+
                   DropdownButtonFormField<int>(
-                    value: _templateSelecionadoId,
+                    value: _templateSelecionado,
                     decoration: InputDecoration(
                       labelText: 'Template do App',
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    items: _templates.map((template) {
+                    items: _templates.map((t) {
                       return DropdownMenuItem<int>(
-                        value: template['id'],
-                        child: Text(template['nome']),
+                        value: t["id"],
+                        child: Text(t["nome"]),
                       );
                     }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _templateSelecionadoId = value;
-                      });
-                    },
-                    validator: (value) =>
-                        value == null ? 'Selecione um template' : null,
+                    onChanged: (v) => setState(() => _templateSelecionado = v),
+                    validator: (v) => v == null ? 'Escolha um template' : null,
                   ),
+
                   SizedBox(height: 16),
                   TextFormField(
                     controller: _googleJsonCtrl,
                     decoration: InputDecoration(
                       labelText: 'Google Service JSON',
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     maxLines: 3,
                     validator: (v) =>
                         v == null || v.trim().isEmpty ? 'Obrigatório' : null,
                   ),
                   SizedBox(height: 16),
-                  _buildField(
-                      controller: _appleTeamCtrl, label: 'Apple Team ID'),
+                  _buildField(controller: _appleTeamCtrl, label: 'Apple Team ID'),
                   SizedBox(height: 16),
-                  _buildField(
-                      controller: _appleKeyCtrl, label: 'Apple Key ID'),
+                  _buildField(controller: _appleKeyCtrl, label: 'Apple Key ID'),
                   SizedBox(height: 16),
-                  _buildField(
-                      controller: _appleIssuerCtrl, label: 'Apple Issuer ID'),
+                  _buildField(controller: _appleIssuerCtrl, label: 'Apple Issuer ID'),
                   SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _submetendo ? null : _enviar,
+                      onPressed: _submitting ? null : _submitApp,
                       style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 16),
                         backgroundColor: Colors.teal,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: _submetendo
+                      child: _submitting
                           ? CircularProgressIndicator(color: Colors.white)
-                          : Text('Cadastrar App',
-                              style: TextStyle(fontSize: 16)),
+                          : Text('Cadastrar App', style: TextStyle(fontSize: 16)),
                     ),
                   ),
                 ]),
@@ -178,15 +184,13 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
       keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
-        border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Colors.teal),
         ),
       ),
-      validator: (v) =>
-          v == null || v.trim().isEmpty ? 'Preencha este campo' : null,
+      validator: (v) => v == null || v.trim().isEmpty ? 'Preencha este campo' : null,
     );
   }
 }
