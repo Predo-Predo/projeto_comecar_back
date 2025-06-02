@@ -44,7 +44,7 @@ class Template(TemplateBase):
 # --- App schemas ---
 
 class AppBase(BaseModel):
-    company_id: int
+    empresa_id: int
     logo_url: Optional[str] = None
     google_service_json: Optional[dict] = None
     apple_team_id: Optional[str] = None
