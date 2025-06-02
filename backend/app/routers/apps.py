@@ -20,8 +20,8 @@ def create_app(app: schemas.AppCreate, db: Session = Depends(database.get_db)):
         raise HTTPException(status_code=404, detail="Template não encontrado")
 
     # Geração automática de campos
-    app_key = slugify(f"{empresa.name}_{empresa.id}")
-    bundle_id = f"com.{slugify(empresa.name)}.app"
+    app_key = slugify(f"{empresa.nome}_{empresa.id}")
+    bundle_id = f"com.{slugify(empresa.nome)}.app"
     package_name = bundle_id
 
     novo_app = models.App(
