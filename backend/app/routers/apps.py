@@ -8,7 +8,7 @@ router = APIRouter(prefix="/apps", tags=["apps"])
 @router.post("/", response_model=schemas.App, status_code=status.HTTP_201_CREATED)
 def create_app(app: schemas.AppCreate, db: Session = Depends(database.get_db)):
     # Verifica se empresa existe
-    empresa = db.query(models.Empresa).filter(models.Empresa.id == app.company_id).first()
+    empresa = db.query(models.Empresa).filter(models.Empresa.id == app.empresa_id).first()
     if not empresa:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
 
@@ -25,7 +25,7 @@ def create_app(app: schemas.AppCreate, db: Session = Depends(database.get_db)):
     package_name = bundle_id
 
     novo_app = models.App(
-        company_id=app.company_id,
+        empresa_id=app.empresa_id,
         logo_url=app.logo_url,
         app_key=app_key,
         bundle_id=bundle_id,
