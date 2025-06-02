@@ -13,24 +13,24 @@ class FormularioAssinaturaEmpresaPage extends StatefulWidget {
 class _FormularioAssinaturaEmpresaPageState
     extends State<FormularioAssinaturaEmpresaPage> {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
+  final _nomeCtrl = TextEditingController();
   final _cnpjCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-  final _logoCtrl = TextEditingController();
+  final _emailContatoCtrl = TextEditingController();
+  final _telefoneCtrl = TextEditingController();
+  final _logoUrlCtrl = TextEditingController();
 
-  bool _submitting = false;
+  bool _submetendo = false;
 
-  Future<void> _submit() async {
+  Future<void> _enviar() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _submitting = true);
+    setState(() => _submetendo = true);
 
     final body = {
-      "name": _nameCtrl.text.trim(),
+      "nome": _nomeCtrl.text.trim(),
       "cnpj": _cnpjCtrl.text.trim(),
-      "email_contact": _emailCtrl.text.trim(),
-      "phone": _phoneCtrl.text.trim(),
-      "logo_url": _logoCtrl.text.trim(),
+      "email_contato": _emailContatoCtrl.text.trim(),
+      "telefone": _telefoneCtrl.text.trim(),
+      "logo_url": _logoUrlCtrl.text.trim(),
     };
 
     final resp = await http.post(
@@ -39,21 +39,20 @@ class _FormularioAssinaturaEmpresaPageState
       body: jsonEncode(body),
     );
 
-    setState(() => _submitting = false);
+    setState(() => _submetendo = false);
 
     if (resp.statusCode == 201) {
       final data = jsonDecode(resp.body);
-      final int companyId = data['id'];
+      final int empresaId = data['id'];
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Empresa cadastrada! ID: $companyId')),
+        SnackBar(content: Text('Empresa cadastrada com sucesso!')),
       );
       _formKey.currentState!.reset();
 
-      // Navega para o formulário de App, passando o companyId
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => FormularioAppEmpresaPage(companyId: companyId),
+          builder: (_) => FormularioAppEmpresaPage(empresaId: empresaId),
         ),
       );
     } else {
@@ -68,11 +67,11 @@ class _FormularioAssinaturaEmpresaPageState
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
+    _nomeCtrl.dispose();
     _cnpjCtrl.dispose();
-    _emailCtrl.dispose();
-    _phoneCtrl.dispose();
-    _logoCtrl.dispose();
+    _emailContatoCtrl.dispose();
+    _telefoneCtrl.dispose();
+    _logoUrlCtrl.dispose();
     super.dispose();
   }
 
@@ -98,28 +97,28 @@ class _FormularioAssinaturaEmpresaPageState
               child: Form(
                 key: _formKey,
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  _buildField(controller: _nameCtrl, label: 'Nome'),
+                  _buildField(controller: _nomeCtrl, label: 'Nome da Empresa'),
                   SizedBox(height: 16),
                   _buildField(controller: _cnpjCtrl, label: 'CNPJ'),
                   SizedBox(height: 16),
                   _buildField(
-                    controller: _emailCtrl,
-                    label: 'Email de Contato',
+                    controller: _emailContatoCtrl,
+                    label: 'E-mail de Contato',
                     keyboardType: TextInputType.emailAddress,
                   ),
                   SizedBox(height: 16),
                   _buildField(
-                    controller: _phoneCtrl,
+                    controller: _telefoneCtrl,
                     label: 'Telefone',
                     keyboardType: TextInputType.phone,
                   ),
                   SizedBox(height: 16),
-                  _buildField(controller: _logoCtrl, label: 'Logo URL'),
+                  _buildField(controller: _logoUrlCtrl, label: 'Logo (URL)'),
                   SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _submitting ? null : _submit,
+                      onPressed: _submetendo ? null : _enviar,
                       style: ElevatedButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: 16),
                         backgroundColor: Colors.teal,
@@ -127,9 +126,10 @@ class _FormularioAssinaturaEmpresaPageState
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: _submitting
+                      child: _submetendo
                           ? CircularProgressIndicator(color: Colors.white)
-                          : Text('Cadastrar', style: TextStyle(fontSize: 16)),
+                          : Text('Cadastrar Empresa',
+                              style: TextStyle(fontSize: 16)),
                     ),
                   ),
                 ]),

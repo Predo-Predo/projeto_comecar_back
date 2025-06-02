@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class FormularioAppEmpresaPage extends StatefulWidget {
-  final int companyId;
-  const FormularioAppEmpresaPage({Key? key, required this.companyId})
+  final int empresaId;
+  const FormularioAppEmpresaPage({Key? key, required this.empresaId})
       : super(key: key);
 
   @override
@@ -15,30 +15,31 @@ class FormularioAppEmpresaPage extends StatefulWidget {
 class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
   final _formKey = GlobalKey<FormState>();
   final _logoCtrl = TextEditingController();
-  final _appKeyCtrl = TextEditingController();
-  final _bundleIdCtrl = TextEditingController();
-  final _packageNameCtrl = TextEditingController();
   final _googleJsonCtrl = TextEditingController();
   final _appleTeamCtrl = TextEditingController();
   final _appleKeyCtrl = TextEditingController();
   final _appleIssuerCtrl = TextEditingController();
+  int? _templateSelecionadoId;
 
-  bool _submitting = false;
+  bool _submetendo = false;
 
-  Future<void> _submitApp() async {
+  final List<Map<String, dynamic>> _templates = [
+    {"id": 1, "nome": "Delivery"},
+    {"id": 2, "nome": "Financeiro"},
+  ];
+
+  Future<void> _enviar() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _submitting = true);
+    setState(() => _submetendo = true);
 
     final body = {
-      "company_id": widget.companyId,
+      "empresa_id": widget.empresaId,
       "logo_url": _logoCtrl.text.trim(),
-      "app_key": _appKeyCtrl.text.trim(),
-      "bundle_id": _bundleIdCtrl.text.trim(),
-      "package_name": _packageNameCtrl.text.trim(),
       "google_service_json": jsonDecode(_googleJsonCtrl.text.trim()),
       "apple_team_id": _appleTeamCtrl.text.trim(),
       "apple_key_id": _appleKeyCtrl.text.trim(),
       "apple_issuer_id": _appleIssuerCtrl.text.trim(),
+      "template_id": _templateSelecionadoId
     };
 
     final resp = await http.post(
@@ -47,13 +48,13 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
       body: jsonEncode(body),
     );
 
-    setState(() => _submitting = false);
+    setState(() => _submetendo = false);
 
     if (resp.statusCode == 201) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('App criado com sucesso!')),
+        SnackBar(content: Text('Aplicativo criado com sucesso!')),
       );
-      Navigator.of(context).pop(); // retorna ao formulário de empresa
+      Navigator.of(context).pop();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -67,9 +68,6 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
   @override
   void dispose() {
     _logoCtrl.dispose();
-    _appKeyCtrl.dispose();
-    _bundleIdCtrl.dispose();
-    _packageNameCtrl.dispose();
     _googleJsonCtrl.dispose();
     _appleTeamCtrl.dispose();
     _appleKeyCtrl.dispose();
@@ -82,7 +80,7 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
     return Scaffold(
       backgroundColor: Colors.teal.shade50,
       appBar: AppBar(
-        title: Text('Configurar App'),
+        title: Text('Configurar Aplicativo'),
         centerTitle: true,
         backgroundColor: Colors.teal,
         elevation: 0,
@@ -99,14 +97,29 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
               child: Form(
                 key: _formKey,
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  _buildField(controller: _logoCtrl, label: 'Logo URL'),
+                  _buildField(controller: _logoCtrl, label: 'Logo (URL)'),
                   SizedBox(height: 16),
-                  _buildField(controller: _appKeyCtrl, label: 'App Key'),
-                  SizedBox(height: 16),
-                  _buildField(controller: _bundleIdCtrl, label: 'Bundle ID'),
-                  SizedBox(height: 16),
-                  _buildField(
-                      controller: _packageNameCtrl, label: 'Package Name'),
+                  DropdownButtonFormField<int>(
+                    value: _templateSelecionadoId,
+                    decoration: InputDecoration(
+                      labelText: 'Template do App',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                    items: _templates.map((template) {
+                      return DropdownMenuItem<int>(
+                        value: template['id'],
+                        child: Text(template['nome']),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _templateSelecionadoId = value;
+                      });
+                    },
+                    validator: (value) =>
+                        value == null ? 'Selecione um template' : null,
+                  ),
                   SizedBox(height: 16),
                   TextFormField(
                     controller: _googleJsonCtrl,
@@ -132,7 +145,7 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _submitting ? null : _submitApp,
+                      onPressed: _submetendo ? null : _enviar,
                       style: ElevatedButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: 16),
                         backgroundColor: Colors.teal,
@@ -140,9 +153,10 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: _submitting
+                      child: _submetendo
                           ? CircularProgressIndicator(color: Colors.white)
-                          : Text('Criar App', style: TextStyle(fontSize: 16)),
+                          : Text('Cadastrar App',
+                              style: TextStyle(fontSize: 16)),
                     ),
                   ),
                 ]),

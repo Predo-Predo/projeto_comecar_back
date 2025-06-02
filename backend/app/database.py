@@ -18,3 +18,11 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Base para todos os models
 Base = declarative_base()
+
+# ✅ Adicione esta função para uso com Depends()
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
