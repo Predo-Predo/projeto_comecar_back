@@ -1,24 +1,15 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional, Any
 from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel, conint
 
-# -------------------
-# Empresa schemas
-# -------------------
+# --- Empresa schemas ---
 
 class EmpresaBase(BaseModel):
     name: str
     cnpj: str
-    email_contact: EmailStr
+    email_contact: str
     phone: str
     logo_url: Optional[str] = None
-    app_key: Optional[str] = None
-    bundle_id: Optional[str] = None
-    package_name: Optional[str] = None
-    apple_team_id: Optional[str] = None
-    apple_key_id: Optional[str] = None
-    apple_issuer_id: Optional[str] = None
-    google_service_json: Optional[Any] = None
 
 class EmpresaCreate(EmpresaBase):
     pass
@@ -30,34 +21,26 @@ class Empresa(EmpresaBase):
     class Config:
         orm_mode = True
 
-# -------------------
-# App schemas
-# -------------------
 
-class AppCreate(BaseModel):
+# --- App schemas ---
+
+class AppBase(BaseModel):
     company_id: int
+    logo_url: Optional[str] = None
+    app_key: Optional[str] = None
+    bundle_id: Optional[str] = None
+    package_name: Optional[str] = None
+    google_service_json: Optional[dict] = None
+    apple_team_id: Optional[str] = None
+    apple_key_id: Optional[str] = None
+    apple_issuer_id: Optional[str] = None
 
-class App(AppCreate):
+class AppCreate(AppBase):
+    pass
+
+class App(AppBase):
     id: int
     created_at: datetime
-
-    class Config:
-        orm_mode = True
-
-# -------------------
-# Build schemas
-# -------------------
-
-class BuildCreate(BaseModel):
-    company_id: int
-
-class Build(BaseModel):
-    id: int
-    company_id: int
-    workflow_run_id: Optional[str] = None
-    status: str
-    created_at: datetime
-    updated_at: datetime
 
     class Config:
         orm_mode = True
