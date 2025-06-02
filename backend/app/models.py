@@ -30,7 +30,7 @@ class App(Base):
     __tablename__ = "apps"
 
     id                  = Column(Integer, primary_key=True, index=True)
-    company_id          = Column(Integer, ForeignKey("empresas.id"), nullable=False)
+    empresa_id          = Column(Integer, ForeignKey("empresas.id"), nullable=False)
     logo_url            = Column(Text, nullable=True)
     app_key             = Column(Text, nullable=True)
     bundle_id           = Column(Text, nullable=True)
