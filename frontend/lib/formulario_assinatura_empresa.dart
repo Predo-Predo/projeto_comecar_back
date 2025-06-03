@@ -30,7 +30,7 @@ class _FormularioAssinaturaEmpresaPageState
       "cnpj": _cnpjCtrl.text.trim(),
       "email_contato": _emailContatoCtrl.text.trim(),
       "telefone": _telefoneCtrl.text.trim(),
-      "logo_url": _logoUrlCtrl.text.trim(),
+      "logo_empresa_url": _logoUrlCtrl.text.trim(),
     };
 
     final resp = await http.post(
