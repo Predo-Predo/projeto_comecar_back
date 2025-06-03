@@ -33,14 +33,16 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
       final resp = await http.get(Uri.parse('http://127.0.0.1:8000/templates/'));
       if (resp.statusCode == 200) {
         final List data = jsonDecode(resp.body);
-        setState(() {
-          _templates = data.map<Map<String, dynamic>>((t) => {
-            "id": t["id"],
-            "nome": t["nome"]
-          }).toList();
-        });
+        if (mounted) {
+          setState(() {
+            _templates = data.map<Map<String, dynamic>>((t) => {
+              "id": t["id"],
+              "nome": t["nome"]
+            }).toList();
+          });
+        }
       } else {
-        throw Exception('Erro ao carregar templates');
+        print('Erro ao carregar templates: ${resp.body}');
       }
     } catch (e) {
       print("Erro ao carregar templates: $e");
@@ -96,6 +98,8 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
 
   @override
   Widget build(BuildContext context) {
+    print("Templates carregados: $_templates");
+
     return Scaffold(
       backgroundColor: Colors.teal.shade50,
       appBar: AppBar(
@@ -119,6 +123,7 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
 
                   DropdownButtonFormField<int>(
                     value: _templateSelecionado,
+                    hint: Text('Selecione um template'),
                     decoration: InputDecoration(
                       labelText: 'Template do App',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
