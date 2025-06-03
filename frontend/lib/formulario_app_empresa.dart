@@ -31,21 +31,21 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
   Future<void> _carregarTemplates() async {
     try {
       final resp = await http.get(Uri.parse('http://127.0.0.1:8000/templates/'));
+      print("Resposta templates: ${resp.statusCode} - ${resp.body}");
+
       if (resp.statusCode == 200) {
-        final List data = jsonDecode(resp.body);
-        if (mounted) {
-          setState(() {
-            _templates = data.map<Map<String, dynamic>>((t) => {
-              "id": t["id"],
-              "nome": t["nome"]
-            }).toList();
-          });
-        }
+        final List<dynamic> data = jsonDecode(resp.body);
+        setState(() {
+          _templates = data.map<Map<String, dynamic>>((t) => {
+            "id": t["id"],
+            "nome": t["nome"]
+          }).toList();
+        });
       } else {
-        print('Erro ao carregar templates: ${resp.body}');
+        throw Exception('Erro ao carregar templates: ${resp.statusCode}');
       }
     } catch (e) {
-      print("Erro ao carregar templates: $e");
+      print("Exceção ao carregar templates: $e");
     }
   }
 
@@ -98,8 +98,6 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
 
   @override
   Widget build(BuildContext context) {
-    print("Templates carregados: $_templates");
-
     return Scaffold(
       backgroundColor: Colors.teal.shade50,
       appBar: AppBar(
@@ -121,9 +119,9 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
                   _buildField(controller: _logoCtrl, label: 'Logo (URL)'),
                   SizedBox(height: 16),
 
+                  // <–– Aqui era onde o dropdown aparecia, mesmo que vazio ––>
                   DropdownButtonFormField<int>(
                     value: _templateSelecionado,
-                    hint: Text('Selecione um template'),
                     decoration: InputDecoration(
                       labelText: 'Template do App',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
