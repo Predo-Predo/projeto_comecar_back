@@ -1,7 +1,8 @@
+# backend/app/schemas.py
+
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel
-
 
 # --- Empresa schemas ---
 
@@ -10,7 +11,7 @@ class EmpresaBase(BaseModel):
     cnpj: str
     email_contato: str
     telefone: str
-    logo_empresa_url: Optional[str] = None
+    logo_empresa_url: Optional[str] = None  # ≪ usa exatamente esse nome ≫
 
 class EmpresaCreate(EmpresaBase):
     pass
@@ -23,17 +24,17 @@ class Empresa(EmpresaBase):
         from_attributes = True
 
 
-# --- Template schemas ---
+# --- Projeto schemas ---
 
-class TemplateBase(BaseModel):
+class ProjetoBase(BaseModel):
     nome: str
     repo_url: str
     descricao: Optional[str] = None
 
-class TemplateCreate(TemplateBase):
+class ProjetoCreate(ProjetoBase):
     pass
 
-class Template(TemplateBase):
+class Projeto(ProjetoBase):
     id: int
     created_at: datetime
 
@@ -45,21 +46,21 @@ class Template(TemplateBase):
 
 class AppBase(BaseModel):
     empresa_id: int
-    logo_url: Optional[str] = None
+    logo_app_url: Optional[str] = None        # ≪ usa exatamente esse nome ≫
     google_service_json: Optional[dict] = None
     apple_team_id: Optional[str] = None
     apple_key_id: Optional[str] = None
     apple_issuer_id: Optional[str] = None
-    template_id: int
+    projeto_id: int
 
 class AppCreate(AppBase):
     pass
 
 class App(AppBase):
     id: int
-    app_key: Optional[str]
-    bundle_id: Optional[str]
-    package_name: Optional[str]
+    app_key: str
+    bundle_id: Optional[str] = None
+    package_name: Optional[str] = None
     esta_ativo: bool
     created_at: datetime
 

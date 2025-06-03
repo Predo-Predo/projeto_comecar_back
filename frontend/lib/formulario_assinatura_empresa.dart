@@ -5,6 +5,13 @@ import 'package:http/http.dart' as http;
 import 'formulario_app_empresa.dart';
 
 class FormularioAssinaturaEmpresaPage extends StatefulWidget {
+  final int projetoId;
+
+  const FormularioAssinaturaEmpresaPage({
+    Key? key,
+    required this.projetoId,
+  }) : super(key: key);
+
   @override
   _FormularioAssinaturaEmpresaPageState createState() =>
       _FormularioAssinaturaEmpresaPageState();
@@ -17,7 +24,7 @@ class _FormularioAssinaturaEmpresaPageState
   final _cnpjCtrl = TextEditingController();
   final _emailContatoCtrl = TextEditingController();
   final _telefoneCtrl = TextEditingController();
-  final _logoUrlCtrl = TextEditingController();
+  final _logoEmpresaUrlCtrl = TextEditingController(); // Renomeado
 
   bool _submetendo = false;
 
@@ -30,7 +37,7 @@ class _FormularioAssinaturaEmpresaPageState
       "cnpj": _cnpjCtrl.text.trim(),
       "email_contato": _emailContatoCtrl.text.trim(),
       "telefone": _telefoneCtrl.text.trim(),
-      "logo_empresa_url": _logoUrlCtrl.text.trim(),
+      "logo_empresa_url": _logoEmpresaUrlCtrl.text.trim(), // usa “logo_empresa_url”
     };
 
     final resp = await http.post(
@@ -50,9 +57,13 @@ class _FormularioAssinaturaEmpresaPageState
       );
       _formKey.currentState!.reset();
 
+      // Passa empresaId e projetoId para a próxima tela
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => FormularioAppEmpresaPage(empresaId: empresaId),
+          builder: (_) => FormularioAppEmpresaPage(
+            empresaId: empresaId,
+            projetoId: widget.projetoId,
+          ),
         ),
       );
     } else {
@@ -71,7 +82,7 @@ class _FormularioAssinaturaEmpresaPageState
     _cnpjCtrl.dispose();
     _emailContatoCtrl.dispose();
     _telefoneCtrl.dispose();
-    _logoUrlCtrl.dispose();
+    _logoEmpresaUrlCtrl.dispose(); // Renomeado
     super.dispose();
   }
 
@@ -113,7 +124,9 @@ class _FormularioAssinaturaEmpresaPageState
                     keyboardType: TextInputType.phone,
                   ),
                   SizedBox(height: 16),
-                  _buildField(controller: _logoUrlCtrl, label: 'Logo (URL)'),
+                  _buildField(
+                      controller: _logoEmpresaUrlCtrl,
+                      label: 'Logo da Empresa (URL)'), // renomeado
                   SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
@@ -151,8 +164,7 @@ class _FormularioAssinaturaEmpresaPageState
       keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
-        border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Colors.teal),

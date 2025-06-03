@@ -4,50 +4,29 @@ import 'package:http/http.dart' as http;
 
 class FormularioAppEmpresaPage extends StatefulWidget {
   final int empresaId;
-  const FormularioAppEmpresaPage({Key? key, required this.empresaId}) : super(key: key);
+  final int projetoId;
+
+  const FormularioAppEmpresaPage({
+    Key? key,
+    required this.empresaId,
+    required this.projetoId,
+  }) : super(key: key);
 
   @override
-  State<FormularioAppEmpresaPage> createState() => _FormularioAppEmpresaPageState();
+  State<FormularioAppEmpresaPage> createState() =>
+      _FormularioAppEmpresaPageState();
 }
 
-class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
+class _FormularioAppEmpresaPageState
+    extends State<FormularioAppEmpresaPage> {
   final _formKey = GlobalKey<FormState>();
-  final _logoCtrl = TextEditingController();
+  final _logoAppUrlCtrl = TextEditingController();   // ≪ logo_app_url ≫
   final _googleJsonCtrl = TextEditingController();
   final _appleTeamCtrl = TextEditingController();
   final _appleKeyCtrl = TextEditingController();
   final _appleIssuerCtrl = TextEditingController();
 
   bool _submitting = false;
-  int? _templateSelecionado;
-  List<Map<String, dynamic>> _templates = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _carregarTemplates();
-  }
-
-  Future<void> _carregarTemplates() async {
-    try {
-      final resp = await http.get(Uri.parse('http://127.0.0.1:8000/templates/'));
-      print("Resposta templates: ${resp.statusCode} - ${resp.body}");
-
-      if (resp.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(resp.body);
-        setState(() {
-          _templates = data.map<Map<String, dynamic>>((t) => {
-            "id": t["id"],
-            "nome": t["nome"]
-          }).toList();
-        });
-      } else {
-        throw Exception('Erro ao carregar templates: ${resp.statusCode}');
-      }
-    } catch (e) {
-      print("Exceção ao carregar templates: $e");
-    }
-  }
 
   Future<void> _submitApp() async {
     if (!_formKey.currentState!.validate()) return;
@@ -55,12 +34,12 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
 
     final body = {
       "empresa_id": widget.empresaId,
-      "logo_url": _logoCtrl.text.trim(),
+      "logo_app_url": _logoAppUrlCtrl.text.trim(),   // usa “logo_app_url”
       "google_service_json": jsonDecode(_googleJsonCtrl.text.trim()),
       "apple_team_id": _appleTeamCtrl.text.trim(),
       "apple_key_id": _appleKeyCtrl.text.trim(),
       "apple_issuer_id": _appleIssuerCtrl.text.trim(),
-      "template_id": _templateSelecionado,
+      "projeto_id": widget.projetoId,
     };
 
     final resp = await http.post(
@@ -88,7 +67,7 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
 
   @override
   void dispose() {
-    _logoCtrl.dispose();
+    _logoAppUrlCtrl.dispose();   // ≪ dispose do controlador correto ≫
     _googleJsonCtrl.dispose();
     _appleTeamCtrl.dispose();
     _appleKeyCtrl.dispose();
@@ -116,26 +95,10 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
               child: Form(
                 key: _formKey,
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  _buildField(controller: _logoCtrl, label: 'Logo (URL)'),
-                  SizedBox(height: 16),
-
-                  // <–– Aqui era onde o dropdown aparecia, mesmo que vazio ––>
-                  DropdownButtonFormField<int>(
-                    value: _templateSelecionado,
-                    decoration: InputDecoration(
-                      labelText: 'Template do App',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    items: _templates.map((t) {
-                      return DropdownMenuItem<int>(
-                        value: t["id"],
-                        child: Text(t["nome"]),
-                      );
-                    }).toList(),
-                    onChanged: (v) => setState(() => _templateSelecionado = v),
-                    validator: (v) => v == null ? 'Escolha um template' : null,
+                  _buildField(
+                    controller: _logoAppUrlCtrl,
+                    label: 'Logo do App (URL)',  // rótulo para o campo correto
                   ),
-
                   SizedBox(height: 16),
                   TextFormField(
                     controller: _googleJsonCtrl,
