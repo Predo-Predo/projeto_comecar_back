@@ -15,3 +15,7 @@ def criar_template(template: schemas.TemplateCreate, db: Session = Depends(datab
     db.commit()
     db.refresh(novo)
     return novo
+
+@router.get("/", response_model=list[schemas.Template])
+def listar_templates(db: Session = Depends(database.get_db)):
+    return db.query(models.Template).order_by(models.Template.created_at.desc()).all()
