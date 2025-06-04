@@ -1,53 +1,45 @@
+# backend/app/utils.py
+
 import os
 import shutil
-from pathlib import Path
+from git import Repo, GitCommandError
 from slugify import slugify
 
-# Ajuste BASE_DIR para apontar para a pasta raiz do repositório
-BASE_DIR     = Path(__file__).resolve().parents[2]
-TEMPLATE_DIR = BASE_DIR / "template_app"
-DEST_ROOT    = BASE_DIR / "empresas"
-
-# Arquivos que terão placeholders substituídos
-PLACEHOLDER_FILES = [
-    "pubspec.yaml",
-    os.path.join("lib", "main.dart"),
-    os.path.join("lib", "pages", "login_page.dart"),
-    os.path.join("android", "app", "build.gradle"),
-    os.path.join("ios", "Runner", "Info.plist"),
-]
-
-def prepare_project(company_name: str, bundle_id: str) -> str:
+def ensure_empresa_folder(base_dir: str, empresa_id: int, empresa_nome: str) -> str:
     """
-    1) Gera slug a partir do nome da empresa
-    2) Copia todo o template_app/ → empresas/<slug>/
-    3) Substitui {{APP_SLUG}}, {{APP_NAME}} e {{BUNDLE_ID}} nos arquivos listados
-    4) Retorna o slug gerado
+    Cria (se ainda não existir) a pasta base de uma empresa em `base_dir`, usando
+    o formato "{empresa_id}-{slugify(empresa_nome)}". Retorna o caminho completo.
+    Exemplo:
+      base_dir="/home/user/PROJETO/empresas"
+      empresa_id=3
+      empresa_nome="Agência Demo"
+    → cria "/home/user/PROJETO/empresas/3-agencia-demo" e devolve essa string.
     """
-    slug = slugify(company_name, lowercase=True)
-    dest = DEST_ROOT / slug
+    slug = slugify(empresa_nome)
+    pasta_empresa = os.path.join(base_dir, f"{empresa_id}-{slug}")
+    os.makedirs(pasta_empresa, exist_ok=True)
+    return pasta_empresa
 
-    # Se já existe, remove para recriar
-    if dest.exists():
-        shutil.rmtree(dest)
+def clone_template_repo(repo_url: str, dest_path: str) -> None:
+    """
+    Clona o repositório Git de `repo_url` em `dest_path`.
+    Se `dest_path` já existir, apaga tudo lá dentro antes de clonar.
+    Lança RuntimeError se o clone falhar.
+    """
+    # Se já existir algo em dest_path, remove para começar “limpo”
+    if os.path.isdir(dest_path):
+        shutil.rmtree(dest_path)
 
-    # Copia árvore de arquivos
-    shutil.copytree(TEMPLATE_DIR, dest)
+    # Garante que a pasta pai de dest_path exista
+    parent = os.path.dirname(dest_path)
+    os.makedirs(parent, exist_ok=True)
 
-    # Faz o replace de placeholders
-    placeholders = {
-        "{{APP_SLUG}}": slug,
-        "{{APP_NAME}}": company_name,
-        "{{BUNDLE_ID}}": bundle_id,
-    }
-
-    for rel_path in PLACEHOLDER_FILES:
-        file_path = dest / rel_path
-        if not file_path.is_file():
-            continue
-        content = file_path.read_text(encoding="utf-8")
-        for key, val in placeholders.items():
-            content = content.replace(key, val)
-        file_path.write_text(content, encoding="utf-8")
-
-    return slug
+    try:
+        Repo.clone_from(repo_url, dest_path)
+    except GitCommandError as e:
+        # Se falhar, limpa parcialmente e relança como RuntimeError
+        if os.path.isdir(dest_path):
+            shutil.rmtree(dest_path)
+        raise RuntimeError(f"Erro ao clonar repo {repo_url}: {e}")
+    # Se chegar aqui, o clone deu certo. Dest_path agora contém o código do repositório.
+    return
