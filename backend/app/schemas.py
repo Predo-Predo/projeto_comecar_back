@@ -1,5 +1,3 @@
-# backend/app/schemas.py
-
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel
@@ -63,6 +61,14 @@ class App(AppBase):
     package_name: Optional[str] = None
     esta_ativo: bool
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- AppWithZip schemas (retorna App + caminho do ZIP) ---
+
+class AppWithZip(App):
+    zip_path: str
 
     class Config:
         from_attributes = True
