@@ -3,123 +3,157 @@
 import os
 import shutil
 import subprocess
-from zipfile import ZipFile
-
+import zipfile
+import stat
 from git import Repo, GitCommandError
 from slugify import slugify
 
+
+def _on_rm_error(func, path, exc_info):
+    """
+    Callback para shutil.rmtree que tenta remover atributos de somente leitura
+    e depois reaplica a operação.
+    """
+    try:
+        os.chmod(path, stat.S_IWRITE)
+    except Exception:
+        pass
+    func(path)
+
+
 def ensure_empresa_folder(base_dir: str, empresa_id: int, empresa_nome: str) -> str:
     """
-    Cria (se ainda não existir) a pasta base de uma empresa em `base_dir`, usando
-    o formato "{empresa_id}-{slugify(empresa_nome)}". Retorna o caminho completo.
-    Exemplo:
-      base_dir="/home/user/PROJETO_COMECAR_BACK/empresas"
-      empresa_id=3
-      empresa_nome="Agência Demo"
-    → cria "/home/user/PROJETO_COMECAR_BACK/empresas/3-agencia-demo" e devolve essa string.
+    Cria (se ainda não existir) a pasta base de uma empresa em `base_dir`,
+    no formato "{empresa_id}-{slugify(empresa_nome)}". Retorna o caminho completo.
     """
     slug = slugify(empresa_nome)
     pasta_empresa = os.path.join(base_dir, f"{empresa_id}-{slug}")
     os.makedirs(pasta_empresa, exist_ok=True)
     return pasta_empresa
 
+
 def clone_template_repo(repo_url: str, dest_path: str) -> None:
     """
     Clona o repositório Git de `repo_url` em `dest_path`.
-    Se `dest_path` já existir, apaga tudo lá dentro antes de clonar.
+    Se `dest_path` já existir, apaga tudo lá dentro antes de clonar,
+    mesmo que haja arquivos marcados como somente leitura.
     Lança RuntimeError se o clone falhar.
     """
-    # Se já existir algo em dest_path, remove para começar “limpo”
     if os.path.isdir(dest_path):
-        shutil.rmtree(dest_path)
+        shutil.rmtree(dest_path, onerror=_on_rm_error)
 
-    # Garante que a pasta pai de dest_path exista
     parent = os.path.dirname(dest_path)
     os.makedirs(parent, exist_ok=True)
 
     try:
         Repo.clone_from(repo_url, dest_path)
     except GitCommandError as e:
-        # Se falhar, limpa parcialmente e relança como RuntimeError
         if os.path.isdir(dest_path):
-            shutil.rmtree(dest_path)
+            shutil.rmtree(dest_path, onerror=_on_rm_error)
         raise RuntimeError(f"Erro ao clonar repo {repo_url}: {e}")
-    # Se chegar aqui, o clone deu certo. dest_path agora contém o código do repositório.
     return
 
-def build_and_zip_app(empresa_id: int, empresa_nome: str, app_key: str) -> str:
+
+def build_apk_and_zip_with_flutter(project_path: str) -> str:
     """
-    1) Monta o caminho da pasta do App em `empresas/{empresa_id}-{slug(empresa_nome)}/{app_key}`.
-    2) Entra nessa pasta e executa 'flutter build apk --release'.
-    3) Após gerar o APK (app-release.apk), cria um ZIP com todo esse diretório do App,
-       nomeando-o como '{app_key}.zip', e salva em 'empresas/{empresa_id}-{slug(empresa_nome)}/'.
-    4) Retorna o caminho absoluto do ZIP gerado.
+    1) Verifica se o comando 'flutter' está disponível no PATH.
+       Se não estiver, lança RuntimeError informando que o Flutter não foi encontrado.
+    2) Executa 'flutter pub get' em project_path
+    3) Executa 'flutter build apk --release' em project_path
+    4) Localiza o APK gerado em 'build/app/outputs/flutter-apk/app-release.apk'
+    5) Compacta esse APK em 'build/app_bundle.zip'
+    6) Usa GitPython para:
+       - git add do ZIP
+       - git commit -m "Adiciona APK zipado do App"
+       - git push origin (branch atual)
+    Retorna o caminho absoluto do .zip criado.
     """
 
-    # === 1) Descobre onde fica a raiz do projeto_comecar_back ===
-    #
-    # utils.py está em:   PROJETO_COMECAR_BACK/backend/app/utils.py
-    # Para chegar em PROJETO_COMECAR_BACK, subimos duas pastas:
-    #    1) de "backend/app"  para  "backend"
-    #    2) de "backend"      para  "projeto_comecar_back"
-    #
-    raiz_do_projeto = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..")
+    # 1) Verifica se 'flutter' existe no PATH
+    if shutil.which("flutter") is None:
+        raise RuntimeError(
+            "Comando 'flutter' não encontrado no PATH.\n"
+            "Abra um terminal onde 'flutter --version' retorne algo e inicie o Uvicorn/FastAPI nesse mesmo terminal."
+        )
+
+    # 2) flutter pub get
+    try:
+        proc_pub = subprocess.run(
+            ["flutter", "pub", "get"],
+            cwd=project_path,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+    except FileNotFoundError:
+        raise RuntimeError(
+            "Falha ao executar 'flutter pub get': comando não encontrado.\n"
+            "Verifique se 'flutter' está no PATH e se você iniciou o servidor na mesma sessão."
+        )
+
+    if proc_pub.returncode != 0:
+        raise RuntimeError(f"Erro em 'flutter pub get': {proc_pub.stderr}")
+
+    # 3) flutter build apk --release
+    try:
+        proc_build = subprocess.run(
+            ["flutter", "build", "apk", "--release"],
+            cwd=project_path,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+    except FileNotFoundError:
+        raise RuntimeError(
+            "Falha ao executar 'flutter build apk': comando não encontrado.\n"
+            "Verifique se 'flutter' está no PATH e se você iniciou o servidor na mesma sessão."
+        )
+
+    if proc_build.returncode != 0:
+        raise RuntimeError(f"Erro em 'flutter build apk': {proc_build.stderr}")
+
+    # 4) Localiza o APK gerado
+    apk_path = os.path.join(
+        project_path,
+        "build",
+        "app",
+        "outputs",
+        "flutter-apk",
+        "app-release.apk"
     )
-    # Agora raiz_do_projeto == ".../projetos/projeto_comecar_back"
+    if not os.path.isfile(apk_path):
+        raise FileNotFoundError(f"APK não encontrado em: {apk_path}")
 
-    # === 2) Monta as strings com slug e caminhos ===
-    slug_empresa = slugify(empresa_nome)
-    pasta_empresas = os.path.join(raiz_do_projeto, "empresas")
-    pasta_da_empresa = os.path.join(pasta_empresas, f"{empresa_id}-{slug_empresa}")
-    pasta_app = os.path.join(pasta_da_empresa, app_key)  # ex.: ".../empresas/3-agencia-digital-futuro/algum-app-key"
+    # 5) Cola-o num ZIP
+    build_dir = os.path.join(project_path, "build")
+    os.makedirs(build_dir, exist_ok=True)
+    zip_filename = "app_bundle.zip"
+    zip_full_path = os.path.join(build_dir, zip_filename)
 
-    # === 3) Verifica se existe a pasta do App ===
-    if not os.path.isdir(pasta_app):
-        raise RuntimeError(f"Pasta do App não encontrada: {pasta_app}")
+    with zipfile.ZipFile(zip_full_path, mode="w", compression=zipfile.ZIP_DEFLATED) as zipf:
+        zipf.write(apk_path, arcname=os.path.basename(apk_path))
 
-    # === 4) Executa o Flutter build dentro da pasta do App ===
-    #
-    # Supondo que o Flutter esteja no PATH de sistema, rodamos:
-    #    flutter build apk --release
-    # dentro de pasta_app. Isso gera:
-    #    pasta_app/build/app/outputs/apk/release/app-release.apk
-    #
-    cmd_build = ["flutter", "build", "apk", "--release", "--target-platform=android-arm64"]
-    proc = subprocess.Popen(
-        cmd_build,
-        cwd=pasta_app,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True
-    )
-    # Exibe linha a linha para debug
-    for linha in proc.stdout:
-        print(linha, end="")
+    # 6) Commit + Push do ZIP para o mesmo repositório Git
+    try:
+        repo = Repo(project_path)
+    except Exception as e:
+        raise RuntimeError(f"Erro ao abrir repositório Git em '{project_path}': {e}")
 
-    exit_code = proc.wait()
-    if exit_code != 0:
-        raise RuntimeError(f"'flutter build apk' retornou código {exit_code}")
+    rel_zip_path = os.path.relpath(zip_full_path, project_path)
+    try:
+        repo.index.add([rel_zip_path])
+    except Exception as e:
+        raise RuntimeError(f"Falha ao dar 'git add' em '{rel_zip_path}': {e}")
 
-    # === 5) Encontra o APK gerado ===
-    apk_relativo = "build/app/outputs/flutter-apk/app-release.apk"
-    apk_gerado = os.path.join(pasta_app, apk_relativo)
-    if not os.path.isfile(apk_gerado):
-        raise RuntimeError(f"APK não encontrado em: {apk_gerado}")
+    try:
+        repo.index.commit("Adiciona APK zipado do App")
+    except Exception as e:
+        raise RuntimeError(f"Falha ao commitar '{rel_zip_path}': {e}")
 
-    # === 6) Cria o arquivo ZIP na pasta da empresa ===
-    zip_destino = os.path.join(pasta_da_empresa, f"{app_key}.zip")
-    # Se já existir algum ZIP anterior, apaga:
-    if os.path.isfile(zip_destino):
-        os.remove(zip_destino)
+    try:
+        origin = repo.remote(name="origin")
+        origin.push()
+    except GitCommandError as e:
+        raise RuntimeError(f"Falha ao dar 'git push': {e}")
 
-    # Compacta toda a pasta do App dentro do ZIP
-    with ZipFile(zip_destino, "w") as zipf:
-        for root, _, arquivos in os.walk(pasta_app):
-            for nome_arquivo in arquivos:
-                caminho_absoluto = os.path.join(root, nome_arquivo)
-                # Para “preservar” a estrutura interna, pegamos o caminho relativo a pasta_app:
-                rel_path = os.path.relpath(caminho_absoluto, pasta_app)
-                zipf.write(caminho_absoluto, arcname=os.path.join(app_key, rel_path))
-
-    return zip_destino
+    return zip_full_path

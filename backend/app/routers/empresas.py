@@ -1,5 +1,6 @@
 # backend/app/routers/empresas.py
 
+import os
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from .. import models, schemas, database
@@ -29,6 +30,14 @@ def create_empresa(
     db.add(nova)
     db.commit()
     db.refresh(nova)
+
+    # Se fornecido, grava o JSON de credenciais do Google Play em disco
+    if emp.play_service_account_json:
+        caminho = os.path.join("play_creds", f"{nova.id}.json")
+        os.makedirs(os.path.dirname(caminho), exist_ok=True)
+        with open(caminho, "w", encoding="utf-8") as f:
+            f.write(emp.play_service_account_json)
+
     return nova
 
 

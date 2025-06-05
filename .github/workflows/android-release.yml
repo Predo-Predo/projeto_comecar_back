@@ -1,0 +1,51 @@
+# .github/workflows/android-release.yml
+
+name: Build e Publish Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      company_id:
+        description: 'ID da empresa para usar o play-service-account.json'
+        required: true
+        type: string
+
+jobs:
+  build_and_publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Baixa o código (incluindo o arquivo play-service-account.json que apps.py já commitou)
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2) Instala a JDK necessária para o Gradle
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: "temurin"
+          java-version: "11"
+
+      # 3) Instala o Flutter
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.32.0"
+          channel: stable
+
+      # 4) Obtém dependências Dart
+      - name: Flutter pub get
+        run: flutter pub get
+
+      # 5) Gera o Android App Bundle (AAB)
+      - name: Build App Bundle
+        run: flutter build appbundle --release
+
+      # 6) Publica no Google Play
+      #    O Gradle Play Publisher irá:
+      #      • Ler as credenciais em android/play-service-account.json
+      #      • Ler a pasta android/app/playstore/… com metadados (descrição, screenshots, etc.)
+      #      • Subir automaticamente o AAB no track “production”
+      - name: Publish to Google Play
+        working-directory: android
+        run: ./gradlew publishReleaseBundle -Ptrack=production
