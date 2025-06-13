@@ -352,3 +352,5 @@ cython_debug/
 
 # Google Play Service Account credentials
 backend/credentials/play-service-account.json
+
+backend/play_creds/
