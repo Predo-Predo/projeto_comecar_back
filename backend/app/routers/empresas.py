@@ -1,43 +1,55 @@
 # backend/app/routers/empresas.py
 
 import os
-from fastapi import APIRouter, Depends, HTTPException, status
+from uuid import uuid4
+from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile
 from sqlalchemy.orm import Session
+
 from .. import models, schemas, database
 
 router = APIRouter(prefix="/empresas", tags=["empresas"])
-
 
 @router.post(
     "/",
     response_model=schemas.Empresa,
     status_code=status.HTTP_201_CREATED
 )
-def create_empresa(
-    emp: schemas.EmpresaCreate,
+async def create_empresa(
+    nome: str = Form(...),
+    cnpj: str = Form(...),
+    email_contato: str = Form(...),
+    telefone: str = Form(...),
+    logo_empresa: UploadFile = File(...),
     db: Session = Depends(database.get_db),
 ):
     # Verifica se já existe empresa com o mesmo CNPJ
-    exists = db.query(models.Empresa).filter(models.Empresa.cnpj == emp.cnpj).first()
+    exists = db.query(models.Empresa).filter(models.Empresa.cnpj == cnpj).first()
     if exists:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Empresa com este CNPJ já cadastrada"
         )
 
-    # Cria nova empresa usando emp.dict()
-    nova = models.Empresa(**emp.dict())
+    # Salva o arquivo de logo em disco
+    logos_dir = os.path.join(os.getcwd(), "logos")
+    os.makedirs(logos_dir, exist_ok=True)
+    filename = f"{uuid4().hex}_{logo_empresa.filename}"
+    full_path = os.path.join(logos_dir, filename)
+    contents = await logo_empresa.read()
+    with open(full_path, "wb") as f:
+        f.write(contents)
+
+    # Cria nova empresa usando os campos de formulário
+    nova = models.Empresa(
+        nome             = nome,
+        cnpj             = cnpj,
+        email_contato    = email_contato,
+        telefone         = telefone,
+        logo_empresa     = full_path
+    )
     db.add(nova)
     db.commit()
     db.refresh(nova)
-
-    # Se fornecido, grava o JSON de credenciais do Google Play em disco
-    if emp.play_service_account_json:
-        caminho = os.path.join("play_creds", f"{nova.id}.json")
-        os.makedirs(os.path.dirname(caminho), exist_ok=True)
-        with open(caminho, "w", encoding="utf-8") as f:
-            f.write(emp.play_service_account_json)
-
     return nova
 
 

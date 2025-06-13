@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 
 import 'formulario_app_empresa.dart';
@@ -24,27 +27,33 @@ class _FormularioAssinaturaEmpresaPageState
   final _cnpjCtrl = TextEditingController();
   final _emailContatoCtrl = TextEditingController();
   final _telefoneCtrl = TextEditingController();
-  final _logoEmpresaUrlCtrl = TextEditingController(); // Renomeado
 
+  File? _logoFile;
   bool _submetendo = false;
 
   Future<void> _enviar() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submetendo = true);
 
-    final body = {
-      "nome": _nomeCtrl.text.trim(),
-      "cnpj": _cnpjCtrl.text.trim(),
-      "email_contato": _emailContatoCtrl.text.trim(),
-      "telefone": _telefoneCtrl.text.trim(),
-      "logo_empresa_url": _logoEmpresaUrlCtrl.text.trim(), // usa “logo_empresa_url”
-    };
+    final uri = Uri.parse('http://127.0.0.1:8000/empresas/');
+    final req = http.MultipartRequest('POST', uri);
 
-    final resp = await http.post(
-      Uri.parse('http://127.0.0.1:8000/empresas/'),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(body),
-    );
+    // Campos de texto
+    req.fields['nome'] = _nomeCtrl.text.trim();
+    req.fields['cnpj'] = _cnpjCtrl.text.trim();
+    req.fields['email_contato'] = _emailContatoCtrl.text.trim();
+    req.fields['telefone'] = _telefoneCtrl.text.trim();
+
+    // Anexa o logo, se selecionado
+    if (_logoFile != null) {
+      req.files.add(await http.MultipartFile.fromPath(
+        'logo_empresa', // nome do campo que o backend deve aceitar
+        _logoFile!.path,
+      ));
+    }
+
+    final streamed = await req.send();
+    final resp = await http.Response.fromStream(streamed);
 
     setState(() => _submetendo = false);
 
@@ -56,8 +65,8 @@ class _FormularioAssinaturaEmpresaPageState
         SnackBar(content: Text('Empresa cadastrada com sucesso!')),
       );
       _formKey.currentState!.reset();
+      setState(() => _logoFile = null);
 
-      // Passa empresaId e projetoId para a próxima tela
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => FormularioAppEmpresaPage(
@@ -82,7 +91,6 @@ class _FormularioAssinaturaEmpresaPageState
     _cnpjCtrl.dispose();
     _emailContatoCtrl.dispose();
     _telefoneCtrl.dispose();
-    _logoEmpresaUrlCtrl.dispose(); // Renomeado
     super.dispose();
   }
 
@@ -124,10 +132,36 @@ class _FormularioAssinaturaEmpresaPageState
                     keyboardType: TextInputType.phone,
                   ),
                   SizedBox(height: 16),
-                  _buildField(
-                      controller: _logoEmpresaUrlCtrl,
-                      label: 'Logo da Empresa (URL)'), // renomeado
+
+                  // Seletor de logo
+                  GestureDetector(
+                    onTap: () async {
+                      final result = await FilePicker.platform.pickFiles(
+                        type: FileType.image,
+                      );
+                      if (result != null && result.files.single.path != null) {
+                        setState(() {
+                          _logoFile = File(result.files.single.path!);
+                        });
+                      }
+                    },
+                    child: Container(
+                      height: 150,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: _logoFile == null
+                          ? Center(child: Text('Clique para escolher o logo'))
+                          : ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(_logoFile!, fit: BoxFit.cover),
+                            ),
+                    ),
+                  ),
                   SizedBox(height: 24),
+
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(

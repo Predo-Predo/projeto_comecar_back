@@ -1,0 +1,5 @@
+{
+  "python.analysis.extraPaths": [
+    "./backend"        // para que “import app.xxx” aponte para backend/app
+  ]
+}

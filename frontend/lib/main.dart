@@ -1,5 +1,8 @@
+// lib/main.dart
+
 import 'package:flutter/material.dart';
-import 'tela_de_produtos.dart'; // importa o arquivo correto
+import 'login.dart';
+import 'tela_de_produtos.dart';
 
 void main() {
   runApp(const MeuApp());
@@ -15,7 +18,12 @@ class MeuApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.teal,
       ),
-      home: const TelaDeProdutosPage(), // usa TelaDeProdutosPage (não TelaDeProdutos)
+      // Começa na tela de login
+      initialRoute: '/login',
+      routes: {
+        '/login': (context) => const LoginPage(),
+        '/home': (context)  => const TelaDeProdutosPage(),
+      },
     );
   }
 }

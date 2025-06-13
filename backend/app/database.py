@@ -1,28 +1,28 @@
-import os
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
+from typing import AsyncGenerator
 
-# Carrega variáveis do .env
-load_dotenv()
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker, declarative_base
+from app.config import settings
 
-# Lê a URL do banco (configure no seu .env)
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise RuntimeError("Variável DATABASE_URL não encontrada no .env")
-
-# Cria o engine e a fábrica de sessões
-engine = create_engine(DATABASE_URL, echo=True)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Base para todos os models
+# ---- Base para os seus modelos ----
 Base = declarative_base()
 
-# ✅ Adicione esta função para uso com Depends()
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# ---- Engine assíncrono ----
+engine = create_async_engine(
+    settings.DATABASE_URL,  # ex: postgresql+asyncpg://user:pass@host:5432/db
+    echo=True,
+    future=True,
+)
+
+# ---- Sessionmaker para AsyncSession ----
+AsyncSessionLocal = sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False,
+)
+
+# ---- Dependency para injetar o DB nas rotas ----
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session:
+        yield session

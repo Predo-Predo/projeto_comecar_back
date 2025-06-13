@@ -1,38 +1,35 @@
 # backend/app/routers/projetos.py
 
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from .. import models, schemas, database
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
-router = APIRouter(prefix="/projetos", tags=["projetos"])
+from app.database import get_db
+from app import models, schemas
 
-
-@router.post(
-    "/",
-    response_model=schemas.Projeto,
-    status_code=status.HTTP_201_CREATED
+router = APIRouter(
+    prefix="/projetos",
+    tags=["projetos"]
 )
-def criar_projeto(
-    projeto: schemas.ProjetoCreate,
-    db: Session = Depends(database.get_db),
-):
-    existe = db.query(models.Projeto).filter(models.Projeto.repo_url == projeto.repo_url).first()
-    if existe:
+
+@router.get("", response_model=List[schemas.Projeto])
+async def list_projetos(db: AsyncSession = Depends(get_db)):
+    try:
+        result = await db.execute(select(models.Projeto))
+        projetos = result.scalars().all()
+        return projetos
+    except Exception as e:
+        # opcional: logar o erro para debug
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Esse repositório já está cadastrado como projeto."
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao buscar projetos: {e}"
         )
 
-    novo = models.Projeto(**projeto.dict())
-    db.add(novo)
-    db.commit()
-    db.refresh(novo)
-    return novo
-
-
-@router.get(
-    "/",
-    response_model=list[schemas.Projeto]
-)
-def listar_projetos(db: Session = Depends(database.get_db)):
-    return db.query(models.Projeto).order_by(models.Projeto.created_at.desc()).all()
+@router.post("", response_model=schemas.Projeto, status_code=status.HTTP_201_CREATED)
+async def create_projeto(projeto_in: schemas.ProjetoCreate, db: AsyncSession = Depends(get_db)):
+    proj = models.Projeto(**projeto_in.dict())
+    db.add(proj)
+    await db.commit()
+    await db.refresh(proj)
+    return proj

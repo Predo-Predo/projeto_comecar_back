@@ -7,14 +7,13 @@ from .database import Base
 class Empresa(Base):
     __tablename__ = "empresas"
 
-    id                         = Column(Integer, primary_key=True, index=True)
-    nome                       = Column(Text, nullable=False)
-    cnpj                       = Column(Text, nullable=False, unique=True)
-    email_contato              = Column(Text, nullable=False)
-    telefone                   = Column(Text, nullable=False)
-    logo_empresa_url           = Column(Text, nullable=True)
-    play_service_account_json  = Column(Text, nullable=True)  # novo campo para credenciais do Google Play
-    created_at                 = Column(DateTime(timezone=True), server_default=func.now())
+    id               = Column(Integer, primary_key=True, index=True)
+    nome             = Column(Text, nullable=False)
+    cnpj             = Column(Text, nullable=False, unique=True)
+    email_contato    = Column(Text, nullable=False)
+    telefone         = Column(Text, nullable=False)
+    logo_empresa     = Column(Text, nullable=True)
+    created_at       = Column(DateTime(timezone=True), server_default=func.now())
 
     apps = relationship("App", back_populates="empresa")
 
@@ -36,7 +35,7 @@ class App(Base):
 
     id                  = Column(Integer, primary_key=True, index=True)
     empresa_id          = Column(Integer, ForeignKey("empresas.id"), nullable=False)
-    logo_app_url        = Column(Text, nullable=True)
+    logo_app            = Column(Text, nullable=True)
     app_key             = Column(Text, nullable=False)
     bundle_id           = Column(Text, nullable=True)
     package_name        = Column(Text, nullable=True)
@@ -50,3 +49,16 @@ class App(Base):
 
     empresa = relationship("Empresa", back_populates="apps")
     projeto = relationship("Projeto", back_populates="apps")
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id              = Column(Integer, primary_key=True, index=True)
+    email           = Column(Text, unique=True, index=True, nullable=False)
+    hashed_password = Column(Text, nullable=True)
+    nome            = Column(Text, nullable=True)
+    oauth_provider  = Column(Text, nullable=True)  # ex: "google", "apple"
+    oauth_sub       = Column(Text, nullable=True)  # identificador no provedor
+    is_active       = Column(Boolean, default=True)
+    created_at      = Column(DateTime(timezone=True), server_default=func.now())

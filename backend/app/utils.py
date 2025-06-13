@@ -15,6 +15,7 @@ def _on_rm_error(func, path, exc_info):
     e depois reaplica a operação.
     """
     try:
+        # Remove flag de somente‐leitura (Windows) e tenta executar novamente
         os.chmod(path, stat.S_IWRITE)
     except Exception:
         pass
@@ -39,15 +40,18 @@ def clone_template_repo(repo_url: str, dest_path: str) -> None:
     mesmo que haja arquivos marcados como somente leitura.
     Lança RuntimeError se o clone falhar.
     """
+    # Se já existir algo em dest_path, remove para começar “limpo” (tratando arquivos readonly)
     if os.path.isdir(dest_path):
         shutil.rmtree(dest_path, onerror=_on_rm_error)
 
+    # Garante que a pasta pai de dest_path exista
     parent = os.path.dirname(dest_path)
     os.makedirs(parent, exist_ok=True)
 
     try:
         Repo.clone_from(repo_url, dest_path)
     except GitCommandError as e:
+        # Se falhar, limpa parcialmente e relança como RuntimeError
         if os.path.isdir(dest_path):
             shutil.rmtree(dest_path, onerror=_on_rm_error)
         raise RuntimeError(f"Erro ao clonar repo {repo_url}: {e}")
