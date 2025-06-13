@@ -8,8 +8,12 @@ from .routers import empresas, apps, projetos, auth, users
 
 app = FastAPI(title="API de Empresas/Apps/Builds")
 
+# --- CORS restrito novamente ---
 origins = [
-    "http://localhost:59598",
+    "http://localhost:59598",                       # seu front local em dev
+    "https://3213-177-129-251-249.ngrok-free.app",                    # URL do túnel HTTPS
+    "https://predo-predo.github.io",                # domínio root GitHub Pages
+    "https://predo-predo.github.io/projeto_comecar_back",  # repo específico
 ]
 
 app.add_middleware(
@@ -19,6 +23,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# ------------------------
 
 @app.on_event("startup")
 async def on_startup():
