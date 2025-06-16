@@ -1,15 +1,15 @@
-import 'dart:convert';
-import 'dart:io';
+// lib/formulario_assinatura_empresa.dart
 
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';              // para kIsWeb
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
-
 import 'formulario_app_empresa.dart';
 
 class FormularioAssinaturaEmpresaPage extends StatefulWidget {
   final int projetoId;
-
   const FormularioAssinaturaEmpresaPage({
     Key? key,
     required this.projetoId,
@@ -22,20 +22,23 @@ class FormularioAssinaturaEmpresaPage extends StatefulWidget {
 
 class _FormularioAssinaturaEmpresaPageState
     extends State<FormularioAssinaturaEmpresaPage> {
+  static const String BACKEND_URL = 
+      'https://3213-177-129-251-249.ngrok-free.app';  // mesma URL do login
+
   final _formKey = GlobalKey<FormState>();
   final _nomeCtrl = TextEditingController();
   final _cnpjCtrl = TextEditingController();
   final _emailContatoCtrl = TextEditingController();
   final _telefoneCtrl = TextEditingController();
 
-  File? _logoFile;
+  PlatformFile? _pickedFile;   // guardaremos o arquivo independente da plataforma
   bool _submetendo = false;
 
   Future<void> _enviar() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submetendo = true);
 
-    final uri = Uri.parse('http://127.0.0.1:8000/empresas/');
+    final uri = Uri.parse('$BACKEND_URL/empresas/');
     final req = http.MultipartRequest('POST', uri);
 
     // Campos de texto
@@ -45,43 +48,74 @@ class _FormularioAssinaturaEmpresaPageState
     req.fields['telefone'] = _telefoneCtrl.text.trim();
 
     // Anexa o logo, se selecionado
-    if (_logoFile != null) {
-      req.files.add(await http.MultipartFile.fromPath(
-        'logo_empresa', // nome do campo que o backend deve aceitar
-        _logoFile!.path,
-      ));
+    if (_pickedFile != null) {
+      // no Web pegamos o bytes
+      if (kIsWeb && _pickedFile!.bytes != null) {
+        req.files.add(
+          http.MultipartFile.fromBytes(
+            'logo_empresa',
+            _pickedFile!.bytes!,
+            filename: _pickedFile!.name,
+          ),
+        );
+      }
+      // em mobile/desktop, usamos o path
+      else if (_pickedFile!.path != null) {
+        req.files.add(
+          await http.MultipartFile.fromPath(
+            'logo_empresa',
+            _pickedFile!.path!,
+          ),
+        );
+      }
     }
 
-    final streamed = await req.send();
-    final resp = await http.Response.fromStream(streamed);
+    try {
+      final streamed = await req.send();
+      final resp = await http.Response.fromStream(streamed);
 
-    setState(() => _submetendo = false);
+      if (resp.statusCode == 201) {
+        final data = jsonDecode(resp.body);
+        final int empresaId = data['id'];
 
-    if (resp.statusCode == 201) {
-      final data = jsonDecode(resp.body);
-      final int empresaId = data['id'];
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Empresa cadastrada com sucesso!')),
+        );
+        _formKey.currentState!.reset();
+        setState(() => _pickedFile = null);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Empresa cadastrada com sucesso!')),
-      );
-      _formKey.currentState!.reset();
-      setState(() => _logoFile = null);
-
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => FormularioAppEmpresaPage(
-            empresaId: empresaId,
-            projetoId: widget.projetoId,
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => FormularioAppEmpresaPage(
+              empresaId: empresaId,
+              projetoId: widget.projetoId,
+            ),
           ),
-        ),
-      );
-    } else {
+        );
+      } else {
+        throw Exception('Código ${resp.statusCode}: ${resp.body}');
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erro ao cadastrar: ${resp.body}'),
+          content: Text('Erro ao cadastrar: $e'),
           backgroundColor: Colors.redAccent,
         ),
       );
+    } finally {
+      setState(() => _submetendo = false);
+    }
+  }
+
+  Future<void> _pickLogo() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: kIsWeb,      // carrega bytes no web
+    );
+    if (result != null && result.files.single.name.isNotEmpty) {
+      setState(() {
+        _pickedFile = result.files.single;
+      });
     }
   }
 
@@ -135,16 +169,7 @@ class _FormularioAssinaturaEmpresaPageState
 
                   // Seletor de logo
                   GestureDetector(
-                    onTap: () async {
-                      final result = await FilePicker.platform.pickFiles(
-                        type: FileType.image,
-                      );
-                      if (result != null && result.files.single.path != null) {
-                        setState(() {
-                          _logoFile = File(result.files.single.path!);
-                        });
-                      }
-                    },
+                    onTap: _pickLogo,
                     child: Container(
                       height: 150,
                       width: double.infinity,
@@ -152,11 +177,19 @@ class _FormularioAssinaturaEmpresaPageState
                         border: Border.all(color: Colors.grey),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: _logoFile == null
+                      child: _pickedFile == null
                           ? Center(child: Text('Clique para escolher o logo'))
                           : ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: Image.file(_logoFile!, fit: BoxFit.cover),
+                              child: kIsWeb
+                                  ? Image.memory(
+                                      _pickedFile!.bytes!,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Image.file(
+                                      File(_pickedFile!.path!),
+                                      fit: BoxFit.cover,
+                                    ),
                             ),
                     ),
                   ),
