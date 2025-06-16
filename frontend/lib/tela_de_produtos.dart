@@ -4,8 +4,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
 import 'formulario_assinatura_empresa.dart';
+import 'login.dart';
 
 class TelaDeProdutosPage extends StatefulWidget {
   const TelaDeProdutosPage({Key? key}) : super(key: key);
@@ -40,23 +40,17 @@ class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
     }
   }
 
-  Future<void> _handleSelecionarProjeto(int projetoId) async {
+  Future<void> _verificarTokenENavegar(int projetoId) async {
     final token = await _storage.read(key: 'token');
-    if (token == null || token.isEmpty) {
-      // Redireciona para login se não tiver token
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/login');
-      return;
-    }
-
-    // Se tiver token, prossegue normalmente
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => FormularioAssinaturaEmpresaPage(
-          projetoId: projetoId,
+    if (token == null || token.trim().isEmpty) {
+      Navigator.of(context).pushReplacementNamed('/login');
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => FormularioAssinaturaEmpresaPage(projetoId: projetoId),
         ),
-      ),
-    );
+      );
+    }
   }
 
   @override
@@ -111,7 +105,7 @@ class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
                         ],
                         const SizedBox(height: 12),
                         ElevatedButton(
-                          onPressed: () => _handleSelecionarProjeto(projeto['id']),
+                          onPressed: () => _verificarTokenENavegar(projeto['id']),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.teal,
                             padding: const EdgeInsets.symmetric(vertical: 12),
