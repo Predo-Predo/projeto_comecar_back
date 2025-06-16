@@ -34,7 +34,6 @@ class _FormularioAssinaturaEmpresaPageState
   bool _submetendo = false;
 
   Future<void> _pickLogo() async {
-    // passo 1: garanti que venha bytes no web
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
       withData: kIsWeb,
@@ -43,11 +42,9 @@ class _FormularioAssinaturaEmpresaPageState
       debugPrint('🖼️ Nenhum arquivo selecionado');
       return;
     }
-    setState(() {
-      _pickedFile = result.files.single;
-    });
+    setState(() => _pickedFile = result.files.single);
     debugPrint(
-      '🖼️ Selecionado: ${_pickedFile!.name}  (${_pickedFile!.size} bytes)',
+      '🖼️ Selecionado: ${_pickedFile!.name} (${_pickedFile!.size} bytes)',
     );
   }
 
@@ -68,7 +65,6 @@ class _FormularioAssinaturaEmpresaPageState
       ..fields['email_contato'] = _emailContatoCtrl.text.trim()
       ..fields['telefone'] = _telefoneCtrl.text.trim();
 
-    // anexa bytes no web, ou path no mobile
     if (kIsWeb && _pickedFile!.bytes != null) {
       req.files.add(http.MultipartFile.fromBytes(
         'logo_empresa',
@@ -82,7 +78,8 @@ class _FormularioAssinaturaEmpresaPageState
       ));
     }
 
-    debugPrint('📤 Enviando: fields=${req.fields.keys} files=${req.files.map((f) => f.filename).toList()}');
+    debugPrint(
+        '📤 Enviando: fields=${req.fields.keys} files=${req.files.map((f) => f.filename).toList()}');
     try {
       final streamed = await req.send();
       final resp = await http.Response.fromStream(streamed);
@@ -141,17 +138,21 @@ class _FormularioAssinaturaEmpresaPageState
             SizedBox(height: 16),
             _buildField(_cnpjCtrl, 'CNPJ'),
             SizedBox(height: 16),
-            _buildField(_emailContatoCtrl, 'E-mail de Contato', TextInputType.emailAddress),
+            _buildField(_emailContatoCtrl, 'E-mail de Contato',
+                TextInputType.emailAddress),
             SizedBox(height: 16),
-            _buildField(_telefoneCtrl, 'Telefone', TextInputType.phone),
+            _buildField(
+                _telefoneCtrl, 'Telefone', TextInputType.phone),
             SizedBox(height: 16),
 
             GestureDetector(
+              behavior: HitTestBehavior.opaque,    // <— captura taps em toda a área
               onTap: _pickLogo,
               child: Container(
                 height: 150,
                 width: double.infinity,
                 decoration: BoxDecoration(
+                  color: Colors.transparent,       // <— torna o container “visível” pro hit-test
                   border: Border.all(color: Colors.grey),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -159,8 +160,14 @@ class _FormularioAssinaturaEmpresaPageState
                 child: _pickedFile == null
                     ? Text('Clique para escolher o logo')
                     : (kIsWeb
-                        ? Image.memory(_pickedFile!.bytes!, fit: BoxFit.cover)
-                        : Image.file(File(_pickedFile!.path!), fit: BoxFit.cover)),
+                        ? Image.memory(
+                            _pickedFile!.bytes!,
+                            fit: BoxFit.cover,
+                          )
+                        : Image.file(
+                            File(_pickedFile!.path!),
+                            fit: BoxFit.cover,
+                          )),
               ),
             ),
             SizedBox(height: 24),
@@ -184,8 +191,8 @@ class _FormularioAssinaturaEmpresaPageState
     );
   }
 
-  Widget _buildField(
-      TextEditingController ctrl, String label, [TextInputType type = TextInputType.text]) {
+  Widget _buildField(TextEditingController ctrl, String label,
+      [TextInputType type = TextInputType.text]) {
     return TextFormField(
       controller: ctrl,
       keyboardType: type,
@@ -193,7 +200,8 @@ class _FormularioAssinaturaEmpresaPageState
         labelText: label,
         border: OutlineInputBorder(),
       ),
-      validator: (v) => v == null || v.trim().isEmpty ? 'Preencha este campo' : null,
+      validator: (v) =>
+          v == null || v.trim().isEmpty ? 'Preencha este campo' : null,
     );
   }
 }
