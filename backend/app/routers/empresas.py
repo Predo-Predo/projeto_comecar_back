@@ -9,6 +9,7 @@ from .. import models, schemas, database
 
 router = APIRouter(prefix="/empresas", tags=["empresas"])
 
+
 @router.post(
     "/",
     response_model=schemas.Empresa,
@@ -19,10 +20,13 @@ async def create_empresa(
     cnpj: str = Form(...),
     email_contato: str = Form(...),
     telefone: str = Form(...),
-    logo_empresa: UploadFile = File(...),
+    logo_empresa: UploadFile = File(...),         # obrigatório de volta
     db: Session = Depends(database.get_db),
 ):
-    # Verifica se já existe empresa com o mesmo CNPJ
+    # Debug: ver o nome e o tamanho do upload
+    print(f"[DEBUG] Recebido logo_empresa.filename={logo_empresa.filename}, content_type={logo_empresa.content_type}")
+
+    # Verifica duplicata
     exists = db.query(models.Empresa).filter(models.Empresa.cnpj == cnpj).first()
     if exists:
         raise HTTPException(
@@ -39,13 +43,13 @@ async def create_empresa(
     with open(full_path, "wb") as f:
         f.write(contents)
 
-    # Cria nova empresa usando os campos de formulário
+    # Cria a instância de empresa
     nova = models.Empresa(
-        nome             = nome,
-        cnpj             = cnpj,
-        email_contato    = email_contato,
-        telefone         = telefone,
-        logo_empresa     = full_path
+        nome=nome,
+        cnpj=cnpj,
+        email_contato=email_contato,
+        telefone=telefone,
+        logo_empresa=full_path
     )
     db.add(nova)
     db.commit()
