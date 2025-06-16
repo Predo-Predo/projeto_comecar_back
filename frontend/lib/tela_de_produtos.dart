@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'formulario_assinatura_empresa.dart';
 
 class TelaDeProdutosPage extends StatefulWidget {
@@ -13,6 +14,7 @@ class TelaDeProdutosPage extends StatefulWidget {
 }
 
 class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
+  final _storage = const FlutterSecureStorage();
   late Future<List<Map<String, dynamic>>> _futureProjetos;
 
   @override
@@ -22,7 +24,8 @@ class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
   }
 
   Future<List<Map<String, dynamic>>> _fetchProjetos() async {
-    final response = await http.get(Uri.parse('http://127.0.0.1:8000/projetos/'));
+    final response =
+        await http.get(Uri.parse('http://127.0.0.1:8000/projetos/'));
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data
@@ -89,10 +92,24 @@ class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
                         ],
                         const SizedBox(height: 12),
                         ElevatedButton(
-                          onPressed: () {
+                          onPressed: () async {
+                            // Verifica se existe JWT armazenado
+                            final token = await _storage.read(key: 'token');
+                            if (token == null) {
+                              // Sem token: redireciona para o login
+                              Navigator.pushReplacementNamed(
+                                  context, '/login');
+                              return;
+                            }
+                            // Com token: prossegue normalmente
+                            await _storage.write(
+                              key: 'empresaId',
+                              value: projeto['id'].toString(),
+                            );
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => FormularioAssinaturaEmpresaPage(
+                                builder: (_) =>
+                                    FormularioAssinaturaEmpresaPage(
                                   projetoId: projeto['id'],
                                 ),
                               ),
