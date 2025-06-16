@@ -14,14 +14,25 @@ class TelaDeProdutosPage extends StatefulWidget {
 }
 
 class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
-  // REMOVIDO `const` para funcionar corretamente
   final _storage = FlutterSecureStorage();
   late Future<List<Map<String, dynamic>>> _futureProjetos;
 
   @override
   void initState() {
     super.initState();
+    _verificaLogin();              // 1) checa assim que a página abre
     _futureProjetos = _fetchProjetos();
+  }
+
+  Future<void> _verificaLogin() async {
+    final token = await _storage.read(key: 'token');
+    if (token == null || token.isEmpty) {
+      // não há token: manda pro login e limpa a pilha
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/login',
+        (route) => false,
+      );
+    }
   }
 
   Future<List<Map<String, dynamic>>> _fetchProjetos() async {
@@ -95,18 +106,17 @@ class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
                         const SizedBox(height: 12),
                         ElevatedButton(
                           onPressed: () async {
-                            // 1) Verifica se existe JWT armazenado
+                            // 2) checa de novo ao clicar
                             final token =
                                 await _storage.read(key: 'token');
                             if (token == null || token.isEmpty) {
-                              // Sem token: redireciona e limpa toda a pilha
                               Navigator.of(context).pushNamedAndRemoveUntil(
                                 '/login',
                                 (route) => false,
                               );
                               return;
                             }
-                            // 2) Com token: prossegue normalmente
+                            // com token, segue
                             await _storage.write(
                               key: 'empresaId',
                               value: projeto['id'].toString(),
