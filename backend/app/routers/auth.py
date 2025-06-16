@@ -1,6 +1,7 @@
 # backend/app/routers/auth.py
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -49,25 +50,48 @@ async def login(user_in: schemas.UserLogin, db: AsyncSession = Depends(get_db)):
     return {"access_token": token}
 
 
-# ——— Login via Google (OIDC) ———
+# ——— Login via Google (OIDC) + POST JSON do Flutter ———
 @router.get("/auth/google")
 async def login_google(request: Request):
     redirect_uri = request.url_for("auth_google_callback")
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
-@router.get(
+@router.api_route(
     "/auth/google/callback",
+    methods=["GET", "POST"],
     response_model=schemas.Token,
     name="auth_google_callback"
 )
 async def auth_google_callback(
     request: Request,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    token_body: dict = Body(None)
 ):
-    token = await oauth.google.authorize_access_token(request)
-    user_info = await oauth.google.parse_id_token(request, token)
+    # Se vier via POST JSON { "token": "<id_token>" }
+    if request.method == "POST":
+        if not token_body or "token" not in token_body:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="Requisição inválida: faltando id token")
+        id_token = token_body["token"]
 
+        # validação simples via Google tokeninfo
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                "https://oauth2.googleapis.com/tokeninfo",
+                params={"id_token": id_token}
+            )
+        if resp.status_code != 200:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                detail="Token Google inválido")
+        user_info = resp.json()
+
+    # Se vier de callback GET do OAuth (code + state)
+    else:
+        token = await oauth.google.authorize_access_token(request)
+        user_info = await oauth.google.parse_id_token(request, token)
+
+    # --- Lógica comum de criação/lookup do usuário ---
     result = await db.execute(
         select(models.User).where(
             models.User.oauth_provider == "google",
