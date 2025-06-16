@@ -1,9 +1,9 @@
-import ace_tools as tools; tools.code_for_user("""// lib/tela_de_produtos.dart
+// lib/tela_de_produtos.dart
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'formulario_assinatura_empresa.dart';
 
 class TelaDeProdutosPage extends StatefulWidget {
@@ -15,7 +15,6 @@ class TelaDeProdutosPage extends StatefulWidget {
 
 class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
   late Future<List<Map<String, dynamic>>> _futureProjetos;
-  final _storage = FlutterSecureStorage();
 
   @override
   void initState() {
@@ -36,21 +35,6 @@ class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
           .toList();
     } else {
       throw Exception('Falha ao carregar projetos: ${response.statusCode}');
-    }
-  }
-
-  Future<void> _verificarTokenENavegar(int projetoId) async {
-    final token = await _storage.read(key: 'token');
-    if (token == null || token.isEmpty) {
-      Navigator.pushReplacementNamed(context, '/login');
-    } else {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => FormularioAssinaturaEmpresaPage(
-            projetoId: projetoId,
-          ),
-        ),
-      );
     }
   }
 
@@ -106,7 +90,23 @@ class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
                         ],
                         const SizedBox(height: 12),
                         ElevatedButton(
-                          onPressed: () => _verificarTokenENavegar(projeto['id']),
+                          onPressed: () async {
+                            final storage = FlutterSecureStorage();
+                            final token = await storage.read(key: 'token');
+
+                            if (token == null || token.trim().isEmpty) {
+                              Navigator.pushReplacementNamed(context, '/login');
+                              return;
+                            }
+
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => FormularioAssinaturaEmpresaPage(
+                                  projetoId: projeto['id'],
+                                ),
+                              ),
+                            );
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.teal,
                             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -131,4 +131,3 @@ class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
     );
   }
 }
-""")
