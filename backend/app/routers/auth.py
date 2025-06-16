@@ -3,16 +3,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from starlette.responses import RedirectResponse
 
 from app import models, schemas
 from app.database import get_db
-from app.security import (
-    hash_password,
-    verify_password,
-    create_access_token,
-    oauth,
-)
+from app.security import hash_password, verify_password, create_access_token, oauth
 
 router = APIRouter(tags=["auth"])
 
@@ -62,9 +56,8 @@ async def login_google(request: Request):
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
-@router.api_route(
+@router.get(
     "/auth/google/callback",
-    methods=["GET", "POST"],            # agora aceita tanto GET quanto POST
     response_model=schemas.Token,
     name="auth_google_callback"
 )

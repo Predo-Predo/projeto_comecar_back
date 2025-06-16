@@ -59,17 +59,19 @@ oauth.register(
     client_id=settings.GOOGLE_CLIENT_ID,
     client_secret=settings.GOOGLE_CLIENT_SECRET,
     server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
-    client_kwargs={"scope": "openid email profile"},
+    client_kwargs={
+        "scope": "openid email profile",
+        "response_mode": "query",   # força GET com state na URL
+    },
 )
 
 # Apple Sign-In (OIDC)
-# Para Apple você precisa gerar um client_secret JWT assinado com sua chave .p8
 def _apple_client_secret() -> str:
     now = int(time.time())
     payload = {
         "iss": settings.APPLE_TEAM_ID,
         "iat": now,
-        "exp": now + 86400 * 180,      # válido por até 180 dias
+        "exp": now + 86400 * 180,
         "aud": "https://appleid.apple.com",
         "sub": settings.APPLE_CLIENT_ID,
     }
@@ -81,5 +83,8 @@ oauth.register(
     client_id=settings.APPLE_CLIENT_ID,
     client_secret=_apple_client_secret,
     server_metadata_url="https://appleid.apple.com/.well-known/openid-configuration",
-    client_kwargs={"scope": "openid email name"},
+    client_kwargs={
+        "scope": "openid email profile",
+        "response_mode": "query",
+    },
 )
