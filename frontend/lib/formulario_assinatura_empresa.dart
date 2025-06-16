@@ -1,8 +1,8 @@
 // lib/formulario_assinatura_empresa.dart
 
 import 'dart:convert';
-import 'dart:typed_data';
-import 'package:flutter/foundation.dart';              // para kIsWeb
+import 'dart:io';
+import 'package:flutter/foundation.dart';            // para kIsWeb
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
@@ -22,8 +22,9 @@ class FormularioAssinaturaEmpresaPage extends StatefulWidget {
 
 class _FormularioAssinaturaEmpresaPageState
     extends State<FormularioAssinaturaEmpresaPage> {
-  static const String BACKEND_URL = 
-      'https://3213-177-129-251-249.ngrok-free.app';  // mesma URL do login
+  // **Use a mesma URL do seu login.dart**
+  static const String BACKEND_URL =
+      'https://3213-177-129-251-249.ngrok-free.app';
 
   final _formKey = GlobalKey<FormState>();
   final _nomeCtrl = TextEditingController();
@@ -31,8 +32,22 @@ class _FormularioAssinaturaEmpresaPageState
   final _emailContatoCtrl = TextEditingController();
   final _telefoneCtrl = TextEditingController();
 
-  PlatformFile? _pickedFile;   // guardaremos o arquivo independente da plataforma
+  PlatformFile? _pickedFile;
   bool _submetendo = false;
+
+  Future<void> _pickLogo() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: kIsWeb, // carrega bytes no Web
+    );
+    if (result != null && result.files.single.name.isNotEmpty) {
+      setState(() => _pickedFile = result.files.single);
+      debugPrint('🖼️ Arquivo selecionado: ${_pickedFile!.name}'
+          ' (${_pickedFile!.size} bytes)');
+    } else {
+      debugPrint('🖼️ Nenhum arquivo selecionado.');
+    }
+  }
 
   Future<void> _enviar() async {
     if (!_formKey.currentState!.validate()) return;
@@ -49,35 +64,34 @@ class _FormularioAssinaturaEmpresaPageState
 
     // Anexa o logo, se selecionado
     if (_pickedFile != null) {
-      // no Web pegamos o bytes
       if (kIsWeb && _pickedFile!.bytes != null) {
-        req.files.add(
-          http.MultipartFile.fromBytes(
-            'logo_empresa',
-            _pickedFile!.bytes!,
-            filename: _pickedFile!.name,
-          ),
-        );
-      }
-      // em mobile/desktop, usamos o path
-      else if (_pickedFile!.path != null) {
-        req.files.add(
-          await http.MultipartFile.fromPath(
-            'logo_empresa',
-            _pickedFile!.path!,
-          ),
-        );
+        req.files.add(http.MultipartFile.fromBytes(
+          'logo_empresa',
+          _pickedFile!.bytes!,
+          filename: _pickedFile!.name,
+        ));
+      } else if (_pickedFile!.path != null) {
+        req.files.add(await http.MultipartFile.fromPath(
+          'logo_empresa',
+          _pickedFile!.path!,
+        ));
       }
     }
+
+    debugPrint('📤 Enviando requisição:'
+        '\n • URI: $uri'
+        '\n • fields: ${req.fields.keys.toList()}'
+        '\n • files: ${req.files.map((f) => f.filename).toList()}');
 
     try {
       final streamed = await req.send();
       final resp = await http.Response.fromStream(streamed);
 
+      debugPrint('📥 Resposta do servidor: ${resp.statusCode} → ${resp.body}');
+
       if (resp.statusCode == 201) {
         final data = jsonDecode(resp.body);
         final int empresaId = data['id'];
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Empresa cadastrada com sucesso!')),
         );
@@ -93,9 +107,10 @@ class _FormularioAssinaturaEmpresaPageState
           ),
         );
       } else {
-        throw Exception('Código ${resp.statusCode}: ${resp.body}');
+        throw Exception('Falha (${resp.statusCode}): ${resp.body}');
       }
     } catch (e) {
+      debugPrint('❌ Erro ao enviar: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro ao cadastrar: $e'),
@@ -104,18 +119,6 @@ class _FormularioAssinaturaEmpresaPageState
       );
     } finally {
       setState(() => _submetendo = false);
-    }
-  }
-
-  Future<void> _pickLogo() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      withData: kIsWeb,      // carrega bytes no web
-    );
-    if (result != null && result.files.single.name.isNotEmpty) {
-      setState(() {
-        _pickedFile = result.files.single;
-      });
     }
   }
 
