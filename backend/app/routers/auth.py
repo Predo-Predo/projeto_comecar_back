@@ -62,8 +62,9 @@ async def login_google(request: Request):
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
-@router.get(
+@router.api_route(
     "/auth/google/callback",
+    methods=["GET", "POST"],            # agora aceita tanto GET quanto POST
     response_model=schemas.Token,
     name="auth_google_callback"
 )
