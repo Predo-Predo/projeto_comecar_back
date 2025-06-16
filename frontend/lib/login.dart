@@ -1,5 +1,3 @@
-// lib/login.dart
-
 import 'dart:convert';
 import 'dart:html' as html;
 import 'dart:js' as js;
@@ -84,7 +82,7 @@ class _LoginPageState extends State<LoginPage> {
 
     html.window.addEventListener('googleLogin', listener);
 
-    // Chama função JS segura que dispara o login Google
+    // Chama função JS segura que dispara o login Google (se disponível)
     js.context.callMethod('showGoogleLogin');
   }
 
