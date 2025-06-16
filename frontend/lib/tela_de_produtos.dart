@@ -14,7 +14,8 @@ class TelaDeProdutosPage extends StatefulWidget {
 }
 
 class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
-  final _storage = const FlutterSecureStorage();
+  // REMOVIDO `const` para funcionar corretamente
+  final _storage = FlutterSecureStorage();
   late Future<List<Map<String, dynamic>>> _futureProjetos;
 
   @override
@@ -61,7 +62,8 @@ class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
           } else {
             final projetos = snapshot.data!;
             return ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+              padding:
+                  const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
               itemCount: projetos.length,
               itemBuilder: (context, index) {
                 final projeto = projetos[index];
@@ -93,15 +95,18 @@ class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
                         const SizedBox(height: 12),
                         ElevatedButton(
                           onPressed: () async {
-                            // Verifica se existe JWT armazenado
-                            final token = await _storage.read(key: 'token');
-                            if (token == null) {
-                              // Sem token: redireciona para o login
-                              Navigator.pushReplacementNamed(
-                                  context, '/login');
+                            // 1) Verifica se existe JWT armazenado
+                            final token =
+                                await _storage.read(key: 'token');
+                            if (token == null || token.isEmpty) {
+                              // Sem token: redireciona e limpa toda a pilha
+                              Navigator.of(context).pushNamedAndRemoveUntil(
+                                '/login',
+                                (route) => false,
+                              );
                               return;
                             }
-                            // Com token: prossegue normalmente
+                            // 2) Com token: prossegue normalmente
                             await _storage.write(
                               key: 'empresaId',
                               value: projeto['id'].toString(),
@@ -117,7 +122,8 @@ class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.teal,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
