@@ -1,5 +1,3 @@
-// lib/login.dart
-
 import 'dart:convert';
 import 'dart:html' as html;
 import 'dart:js' as js;
@@ -7,7 +5,7 @@ import 'dart:js' as js;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'tela_de_produtos.dart';
+import 'tela_de_produtos.dart'; // import para não quebrar nada
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -25,33 +23,34 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _loginWithEmail() async {
     setState(() => _loading = true);
-    try {
-      final uri = Uri.parse('$BACKEND_URL/auth/login');
-      final resp = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': _emailCtrl.text,
-          'password': _passCtrl.text,
-        }),
-      );
 
-      if (resp.statusCode == 200) {
+    final uri = Uri.parse('$BACKEND_URL/auth/login');
+    final resp = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': _emailCtrl.text,
+        'password': _passCtrl.text,
+      }),
+    );
+
+    if (resp.statusCode == 200) {
+      try {
         final data = jsonDecode(resp.body);
         await _storage.write(key: 'token', value: data['access_token']);
         Navigator.pushReplacementNamed(context, '/home');
-      } else {
+      } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro (${resp.statusCode}): ${resp.body}')),
+          SnackBar(content: Text('Resposta inválida do servidor: $e')),
         );
       }
-    } catch (e) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Falha no login: $e')),
+        SnackBar(content: Text('Erro (${resp.statusCode}): ${resp.body}')),
       );
-    } finally {
-      setState(() => _loading = false);
     }
+
+    setState(() => _loading = false);
   }
 
   Future<void> _loginWithGoogle() async {
@@ -60,52 +59,31 @@ class _LoginPageState extends State<LoginPage> {
     void listener(html.Event event) async {
       html.CustomEvent customEvent = event as html.CustomEvent;
       final String idToken = customEvent.detail;
-      html.window.removeEventListener('googleLogin', listener);
 
-      try {
-        final resp = await http.post(
-          Uri.parse('$BACKEND_URL/auth/google/callback'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'token': idToken}),
-        );
+      final resp = await http.post(
+        Uri.parse('$BACKEND_URL/auth/google/callback'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'token': idToken}),
+      );
 
-        if (resp.statusCode == 200) {
-          final data = jsonDecode(resp.body);
-          await _storage.write(key: 'token', value: data['access_token']);
-          Navigator.pushReplacementNamed(context, '/home');
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro no login Google: ${resp.statusCode}')),
-          );
-        }
-      } catch (e) {
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        await _storage.write(key: 'token', value: data['access_token']);
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Falha no login Google: $e')),
+          SnackBar(content: Text('Erro no login Google: ${resp.statusCode}')),
         );
-      } finally {
-        setState(() => _loading = false);
       }
+
+      html.window.removeEventListener('googleLogin', listener);
+      setState(() => _loading = false);
     }
 
     html.window.addEventListener('googleLogin', listener);
 
-    // Tenta abrir o popup do GIS; se falhar, remove listener e sai do loading
-    try {
-      js.context.callMethod('showGoogleLogin');
-    } catch (e) {
-      html.window.removeEventListener('googleLogin', listener);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao iniciar login Google: $e')),
-      );
-      setState(() => _loading = false);
-    }
-  }
-
-  @override
-  void dispose() {
-    _emailCtrl.dispose();
-    _passCtrl.dispose();
-    super.dispose();
+    // Chama função JS segura que dispara o login Google
+    js.context.callMethod('showGoogleLogin');
   }
 
   @override
