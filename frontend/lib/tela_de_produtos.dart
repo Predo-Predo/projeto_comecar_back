@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import 'formulario_assinatura_empresa.dart';
 
 class TelaDeProdutosPage extends StatefulWidget {
@@ -15,6 +16,7 @@ class TelaDeProdutosPage extends StatefulWidget {
 
 class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
   late Future<List<Map<String, dynamic>>> _futureProjetos;
+  final _storage = FlutterSecureStorage();
 
   @override
   void initState() {
@@ -36,6 +38,25 @@ class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
     } else {
       throw Exception('Falha ao carregar projetos: ${response.statusCode}');
     }
+  }
+
+  Future<void> _handleSelecionarProjeto(int projetoId) async {
+    final token = await _storage.read(key: 'token');
+    if (token == null || token.isEmpty) {
+      // Redireciona para login se não tiver token
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/login');
+      return;
+    }
+
+    // Se tiver token, prossegue normalmente
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => FormularioAssinaturaEmpresaPage(
+          projetoId: projetoId,
+        ),
+      ),
+    );
   }
 
   @override
@@ -90,23 +111,7 @@ class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
                         ],
                         const SizedBox(height: 12),
                         ElevatedButton(
-                          onPressed: () async {
-                            final storage = FlutterSecureStorage();
-                            final token = await storage.read(key: 'token');
-
-                            if (token == null || token.trim().isEmpty) {
-                              Navigator.pushReplacementNamed(context, '/login');
-                              return;
-                            }
-
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => FormularioAssinaturaEmpresaPage(
-                                  projetoId: projeto['id'],
-                                ),
-                              ),
-                            );
-                          },
+                          onPressed: () => _handleSelecionarProjeto(projeto['id']),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.teal,
                             padding: const EdgeInsets.symmetric(vertical: 12),
