@@ -6,8 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'formulario_app_empresa.dart';
-
-// Só importa dart:io quando disponível (mobile/desktop)
 import 'conditional_file.dart' if (dart.library.io) 'dart:io' show File;
 
 class FormularioAssinaturaEmpresaPage extends StatefulWidget {
@@ -37,18 +35,23 @@ class _FormularioAssinaturaEmpresaPageState
   bool _submetendo = false;
 
   Future<void> _pickLogo() async {
+    print('[DEBUG] _pickLogo chamado');
     final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      withData: true,                // sempre traz os bytes, mesmo em mobile
+      // em vez de FileType.image, usamos custom para não depender do mapeamento interno
+      type: FileType.custom,
+      allowedExtensions: ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'],
+      withData: true, // sempre carrega bytes
     );
+    print('[DEBUG] pickFiles result: $result');
     if (result == null || result.files.isEmpty) {
-      debugPrint('🖼️ Nenhum arquivo selecionado');
+      print('[DEBUG] nenhum arquivo selecionado');
       return;
     }
-    setState(() => _pickedFile = result.files.single);
-    debugPrint(
-      '🖼️ Selecionado: ${_pickedFile!.name} (${_pickedFile!.size} bytes)',
+    final file = result.files.single;
+    print(
+      '[DEBUG] arquivo: name=${file.name} size=${file.size} bytesLength=${file.bytes?.length}'
     );
+    setState(() => _pickedFile = file);
   }
 
   Future<void> _enviar() async {
@@ -67,21 +70,15 @@ class _FormularioAssinaturaEmpresaPageState
       ..fields['cnpj'] = _cnpjCtrl.text.trim()
       ..fields['email_contato'] = _emailContatoCtrl.text.trim()
       ..fields['telefone'] = _telefoneCtrl.text.trim()
-      // envia sempre via bytes, funciona em web e mobile
       ..files.add(http.MultipartFile.fromBytes(
         'logo_empresa',
         _pickedFile!.bytes!,
         filename: _pickedFile!.name,
       ));
 
-    debugPrint(
-      '📤 Enviando: fields=${req.fields.keys} files=${req.files.map((f) => f.filename).toList()}'
-    );
-
     try {
       final streamed = await req.send();
       final resp = await http.Response.fromStream(streamed);
-      debugPrint('📥 Resposta: ${resp.statusCode} ${resp.body}');
       if (resp.statusCode == 201) {
         final data = jsonDecode(resp.body);
         final empresaId = data['id'] as int;
@@ -98,7 +95,6 @@ class _FormularioAssinaturaEmpresaPageState
         throw Exception('Status ${resp.statusCode}: ${resp.body}');
       }
     } catch (e) {
-      debugPrint('❌ Erro ao enviar: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro ao cadastrar: $e'),
@@ -123,10 +119,7 @@ class _FormularioAssinaturaEmpresaPageState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.teal.shade50,
-      appBar: AppBar(
-        title: Text('Cadastrar Empresa'),
-        backgroundColor: Colors.teal,
-      ),
+      appBar: AppBar(title: Text('Cadastrar Empresa'), backgroundColor: Colors.teal),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(24),
         child: Form(
@@ -136,8 +129,7 @@ class _FormularioAssinaturaEmpresaPageState
             SizedBox(height: 16),
             _buildField(_cnpjCtrl, 'CNPJ'),
             SizedBox(height: 16),
-            _buildField(
-                _emailContatoCtrl, 'E-mail de Contato', TextInputType.emailAddress),
+            _buildField(_emailContatoCtrl, 'E-mail de Contato', TextInputType.emailAddress),
             SizedBox(height: 16),
             _buildField(_telefoneCtrl, 'Telefone', TextInputType.phone),
             SizedBox(height: 16),
@@ -148,13 +140,12 @@ class _FormularioAssinaturaEmpresaPageState
                 height: 150,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.transparent,
                   border: Border.all(color: Colors.grey),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                alignment: Alignment.center,
+                clipBehavior: Clip.hardEdge,
                 child: _pickedFile == null
-                    ? Text('Clique para escolher o logo')
+                    ? Center(child: Text('Clique para escolher o logo'))
                     : _buildPreview(),
               ),
             ),
@@ -183,7 +174,6 @@ class _FormularioAssinaturaEmpresaPageState
     if (bytes != null) {
       return Image.memory(bytes, fit: BoxFit.cover, width: double.infinity, height: double.infinity);
     } else {
-      // só será chamado em plataformas IO, se bytes for null
       return Image.file(
         File(_pickedFile!.path!),
         fit: BoxFit.cover,
@@ -201,12 +191,8 @@ class _FormularioAssinaturaEmpresaPageState
     return TextFormField(
       controller: ctrl,
       keyboardType: type,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(),
-      ),
-      validator: (v) =>
-          v == null || v.trim().isEmpty ? 'Preencha este campo' : null,
+      decoration: InputDecoration(labelText: label, border: OutlineInputBorder()),
+      validator: (v) => v == null || v.trim().isEmpty ? 'Preencha este campo' : null,
     );
   }
 }
