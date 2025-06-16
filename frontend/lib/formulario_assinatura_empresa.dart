@@ -1,11 +1,14 @@
-import 'dart:io';
-import 'dart:typed_data';
+// lib/formulario_assinatura_empresa.dart
 
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'formulario_app_empresa.dart';
+
+// Só importa dart:io quando disponível (mobile/desktop)
+import 'conditional_file.dart' if (dart.library.io) 'dart:io' show File;
 
 class FormularioAssinaturaEmpresaPage extends StatefulWidget {
   final int projetoId;
@@ -36,7 +39,7 @@ class _FormularioAssinaturaEmpresaPageState
   Future<void> _pickLogo() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
-      withData: kIsWeb,
+      withData: true,                // sempre traz os bytes, mesmo em mobile
     );
     if (result == null || result.files.isEmpty) {
       debugPrint('🖼️ Nenhum arquivo selecionado');
@@ -63,23 +66,18 @@ class _FormularioAssinaturaEmpresaPageState
       ..fields['nome'] = _nomeCtrl.text.trim()
       ..fields['cnpj'] = _cnpjCtrl.text.trim()
       ..fields['email_contato'] = _emailContatoCtrl.text.trim()
-      ..fields['telefone'] = _telefoneCtrl.text.trim();
-
-    if (kIsWeb && _pickedFile!.bytes != null) {
-      req.files.add(http.MultipartFile.fromBytes(
+      ..fields['telefone'] = _telefoneCtrl.text.trim()
+      // envia sempre via bytes, funciona em web e mobile
+      ..files.add(http.MultipartFile.fromBytes(
         'logo_empresa',
         _pickedFile!.bytes!,
         filename: _pickedFile!.name,
       ));
-    } else if (_pickedFile!.path != null) {
-      req.files.add(await http.MultipartFile.fromPath(
-        'logo_empresa',
-        _pickedFile!.path!,
-      ));
-    }
 
     debugPrint(
-        '📤 Enviando: fields=${req.fields.keys} files=${req.files.map((f) => f.filename).toList()}');
+      '📤 Enviando: fields=${req.fields.keys} files=${req.files.map((f) => f.filename).toList()}'
+    );
+
     try {
       final streamed = await req.send();
       final resp = await http.Response.fromStream(streamed);
@@ -138,40 +136,29 @@ class _FormularioAssinaturaEmpresaPageState
             SizedBox(height: 16),
             _buildField(_cnpjCtrl, 'CNPJ'),
             SizedBox(height: 16),
-            _buildField(_emailContatoCtrl, 'E-mail de Contato',
-                TextInputType.emailAddress),
-            SizedBox(height: 16),
             _buildField(
-                _telefoneCtrl, 'Telefone', TextInputType.phone),
+                _emailContatoCtrl, 'E-mail de Contato', TextInputType.emailAddress),
             SizedBox(height: 16),
-
+            _buildField(_telefoneCtrl, 'Telefone', TextInputType.phone),
+            SizedBox(height: 16),
             GestureDetector(
-              behavior: HitTestBehavior.opaque,    // <— captura taps em toda a área
+              behavior: HitTestBehavior.opaque,
               onTap: _pickLogo,
               child: Container(
                 height: 150,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.transparent,       // <— torna o container “visível” pro hit-test
+                  color: Colors.transparent,
                   border: Border.all(color: Colors.grey),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 alignment: Alignment.center,
                 child: _pickedFile == null
                     ? Text('Clique para escolher o logo')
-                    : (kIsWeb
-                        ? Image.memory(
-                            _pickedFile!.bytes!,
-                            fit: BoxFit.cover,
-                          )
-                        : Image.file(
-                            File(_pickedFile!.path!),
-                            fit: BoxFit.cover,
-                          )),
+                    : _buildPreview(),
               ),
             ),
             SizedBox(height: 24),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -191,8 +178,26 @@ class _FormularioAssinaturaEmpresaPageState
     );
   }
 
-  Widget _buildField(TextEditingController ctrl, String label,
-      [TextInputType type = TextInputType.text]) {
+  Widget _buildPreview() {
+    final bytes = _pickedFile!.bytes;
+    if (bytes != null) {
+      return Image.memory(bytes, fit: BoxFit.cover, width: double.infinity, height: double.infinity);
+    } else {
+      // só será chamado em plataformas IO, se bytes for null
+      return Image.file(
+        File(_pickedFile!.path!),
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+      );
+    }
+  }
+
+  Widget _buildField(
+    TextEditingController ctrl,
+    String label, [
+    TextInputType type = TextInputType.text,
+  ]) {
     return TextFormField(
       controller: ctrl,
       keyboardType: type,
