@@ -7,10 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'formulario_app_empresa.dart';
 import 'package:image_picker/image_picker.dart';
-
-import 'web_file_picker.dart'
-    if (dart.library.io) 'package:image_picker/image_picker.dart';
-
 import 'dart:html' as html;
 
 class FormularioAssinaturaEmpresaPage extends StatefulWidget {
@@ -182,7 +178,7 @@ class _FormularioAssinaturaEmpresaPageState
 
   @override
   Widget build(BuildContext context) {
-    print('Tela carregada!'); // 👈 print adicionado para forçar rebuild no GitHub Pages
+    print('Tela carregada!');
     return Scaffold(
       backgroundColor: Colors.teal.shade50,
       appBar: AppBar(title: Text('Cadastrar Empresa'), backgroundColor: Colors.teal),
