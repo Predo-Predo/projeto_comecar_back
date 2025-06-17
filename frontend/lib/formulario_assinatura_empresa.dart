@@ -198,7 +198,7 @@ class _FormularioAssinaturaEmpresaPageState
               _buildField(_emailContatoCtrl, 'E-mail de Contato', TextInputType.emailAddress),
               SizedBox(height: 16),
               _buildField(_telefoneCtrl, 'Telefone', TextInputType.phone),
-              SizedBox(height: 16),
+              SizedBox(height: 16)
 
               Column(
   children: [
