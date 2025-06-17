@@ -8,24 +8,24 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
+      - name: Checkout Repo
         uses: actions/checkout@v3
 
-      - name: Setup Flutter
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.0' 
+          flutter-version: '3.22.0'
 
       - name: Install dependencies
-        run: cd frontend && flutter pub get
+        run: flutter pub get
 
       - name: Build Web
-        run: cd frontend && flutter build web --release
+        run: flutter build web --release
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: frontend/build/web
+          publish_dir: build/web
+          publish_branch: gh-pages
