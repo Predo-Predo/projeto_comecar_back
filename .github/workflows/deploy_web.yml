@@ -10,19 +10,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set up Flutter
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.0'  # ajuste conforme sua versão
+          flutter-version: '3.22.0'
 
       - name: Install dependencies
-        run: flutter pub get
+        run: cd frontend && flutter pub get
 
       - name: Build Web
-        run: flutter build web --release
+        run: cd frontend && flutter build web --release
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
