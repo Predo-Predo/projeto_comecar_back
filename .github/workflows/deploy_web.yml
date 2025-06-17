@@ -1,4 +1,4 @@
-name: Build and Deploy Flutter Web
+name: Deploy Flutter Web
 
 on:
   push:
@@ -10,13 +10,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.0'
+          flutter-version: '3.22.0' 
 
       - name: Install dependencies
         run: cd frontend && flutter pub get
