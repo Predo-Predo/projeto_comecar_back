@@ -1,12 +1,13 @@
 // lib/formulario_assinatura_empresa.dart
 
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'formulario_app_empresa.dart';
 
-// Import condicional: usa web_file_picker.dart na Web, e image_picker em IO (mobile/desktop).
+// Import condicional
 import 'web_file_picker.dart'
     if (dart.library.io) 'package:image_picker/image_picker.dart';
 
@@ -39,27 +40,44 @@ class _FormularioAssinaturaEmpresaPageState
 
   Future<void> _pickLogo() async {
     if (kIsWeb) {
-      // Web: usa nosso wrapper dart:html
+      print('Tentando selecionar arquivo na web...');
       final webFile = await pickWebFile(accept: ['image/*']);
-      if (webFile == null) return;
+      if (webFile == null) {
+        print('Nenhum arquivo selecionado');
+        return;
+      }
+
       final reader = html.FileReader();
       reader.readAsArrayBuffer(webFile);
       await reader.onLoad.first;
       final bytes = reader.result as Uint8List;
+
+      print('Arquivo selecionado: ${webFile.name}');
+      print('Tamanho: ${bytes.length} bytes');
+      print('Tipo: ${webFile.type}');
+
       setState(() {
         _logoBytes = bytes;
         _logoName = webFile.name;
       });
+
     } else {
-      // Mobile/Desktop: usa image_picker
+      print('Tentando selecionar imagem em mobile/desktop...');
       final XFile? picked = await ImagePicker().pickImage(
         source: ImageSource.gallery,
         maxWidth: 1200,
         maxHeight: 1200,
         imageQuality: 90,
       );
-      if (picked == null) return;
+      if (picked == null) {
+        print('Nenhuma imagem selecionada');
+        return;
+      }
       final bytes = await picked.readAsBytes();
+
+      print('Imagem selecionada: ${picked.name}');
+      print('Tamanho: ${bytes.length} bytes');
+
       setState(() {
         _logoBytes = bytes;
         _logoName = picked.name;
@@ -72,8 +90,20 @@ class _FormularioAssinaturaEmpresaPageState
   }
 
   Future<void> _enviar() async {
-    if (!_formKey.currentState!.validate()) return;
+    print('===> Enviando dados...');
+    print('Nome: ${_nomeCtrl.text}');
+    print('CNPJ: ${_cnpjCtrl.text}');
+    print('Email: ${_emailContatoCtrl.text}');
+    print('Telefone: ${_telefoneCtrl.text}');
+    print('Logo: $_logoName (${_logoBytes?.length ?? 0} bytes)');
+
+    if (!_formKey.currentState!.validate()) {
+      print('Formulário inválido');
+      return;
+    }
+
     if (_logoBytes == null || _logoName == null) {
+      print('Logo não selecionado');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Você precisa escolher um logo')),
       );
@@ -81,21 +111,26 @@ class _FormularioAssinaturaEmpresaPageState
     }
 
     setState(() => _submetendo = true);
-    final uri = Uri.parse('$BACKEND_URL/empresas/');
-    final req = http.MultipartRequest('POST', uri)
-      ..fields['nome'] = _nomeCtrl.text.trim()
-      ..fields['cnpj'] = _cnpjCtrl.text.trim()
-      ..fields['email_contato'] = _emailContatoCtrl.text.trim()
-      ..fields['telefone'] = _telefoneCtrl.text.trim()
-      ..files.add(http.MultipartFile.fromBytes(
-        'logo_empresa',
-        _logoBytes!,
-        filename: _logoName!,
-      ));
 
     try {
+      final uri = Uri.parse('$BACKEND_URL/empresas/');
+      final req = http.MultipartRequest('POST', uri)
+        ..fields['nome'] = _nomeCtrl.text.trim()
+        ..fields['cnpj'] = _cnpjCtrl.text.trim()
+        ..fields['email_contato'] = _emailContatoCtrl.text.trim()
+        ..fields['telefone'] = _telefoneCtrl.text.trim()
+        ..files.add(http.MultipartFile.fromBytes(
+          'logo_empresa',
+          _logoBytes!,
+          filename: _logoName!,
+        ));
+
+      print('Enviando requisição POST...');
       final streamed = await req.send();
       final resp = await http.Response.fromStream(streamed);
+      print('Status HTTP: ${resp.statusCode}');
+      print('Resposta: ${resp.body}');
+
       if (resp.statusCode == 201) {
         final data = jsonDecode(resp.body);
         final empresaId = data['id'] as int;
@@ -113,7 +148,9 @@ class _FormularioAssinaturaEmpresaPageState
       } else {
         throw Exception('Status ${resp.statusCode}: ${resp.body}');
       }
-    } catch (e) {
+    } catch (e, stack) {
+      print('Erro ao enviar: $e');
+      print('Stack: $stack');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro ao cadastrar: $e'),
@@ -204,7 +241,8 @@ class _FormularioAssinaturaEmpresaPageState
     );
   }
 
-  Widget _buildField(TextEditingController ctrl, String label, [TextInputType type = TextInputType.text]) {
+  Widget _buildField(TextEditingController ctrl, String label,
+      [TextInputType type = TextInputType.text]) {
     return TextFormField(
       controller: ctrl,
       keyboardType: type,
@@ -212,7 +250,8 @@ class _FormularioAssinaturaEmpresaPageState
         labelText: label,
         border: OutlineInputBorder(),
       ),
-      validator: (v) => v == null || v.trim().isEmpty ? 'Preencha este campo' : null,
+      validator: (v) =>
+          v == null || v.trim().isEmpty ? 'Preencha este campo' : null,
     );
   }
 }
