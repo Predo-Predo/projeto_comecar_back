@@ -7,9 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'formulario_app_empresa.dart';
 
-// Import condicional
 import 'web_file_picker.dart'
     if (dart.library.io) 'package:image_picker/image_picker.dart';
+
+/// 👇 Import necessário para Web!
+import 'dart:html' as html;
 
 class FormularioAssinaturaEmpresaPage extends StatefulWidget {
   final int projetoId;
@@ -39,30 +41,37 @@ class _FormularioAssinaturaEmpresaPageState
   bool _submetendo = false;
 
   Future<void> _pickLogo() async {
+    print('==> _pickLogo chamado');
     if (kIsWeb) {
-      print('Tentando selecionar arquivo na web...');
-      final webFile = await pickWebFile(accept: ['image/*']);
-      if (webFile == null) {
-        print('Nenhum arquivo selecionado');
-        return;
-      }
+      print('Tentando selecionar arquivo na Web...');
+      final uploadInput = html.FileUploadInputElement()..accept = 'image/*';
+      uploadInput.click();
 
-      final reader = html.FileReader();
-      reader.readAsArrayBuffer(webFile);
-      await reader.onLoad.first;
-      final bytes = reader.result as Uint8List;
+      uploadInput.onChange.listen((event) {
+        final file = uploadInput.files?.first;
+        if (file == null) {
+          print('Nenhum arquivo selecionado');
+          return;
+        }
 
-      print('Arquivo selecionado: ${webFile.name}');
-      print('Tamanho: ${bytes.length} bytes');
-      print('Tipo: ${webFile.type}');
+        final reader = html.FileReader();
+        reader.readAsArrayBuffer(file);
+        reader.onLoadEnd.listen((_) {
+          setState(() {
+            _logoBytes = reader.result as Uint8List;
+            _logoName = file.name;
+          });
 
-      setState(() {
-        _logoBytes = bytes;
-        _logoName = webFile.name;
+          print('Arquivo selecionado: ${file.name}');
+          print('Tamanho: ${_logoBytes?.length ?? 0} bytes');
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Logo selecionado: ${file.name}')),
+          );
+        });
       });
-
     } else {
-      print('Tentando selecionar imagem em mobile/desktop...');
+      print('Selecionando imagem em mobile/desktop...');
       final XFile? picked = await ImagePicker().pickImage(
         source: ImageSource.gallery,
         maxWidth: 1200,
@@ -73,20 +82,20 @@ class _FormularioAssinaturaEmpresaPageState
         print('Nenhuma imagem selecionada');
         return;
       }
+
       final bytes = await picked.readAsBytes();
-
-      print('Imagem selecionada: ${picked.name}');
-      print('Tamanho: ${bytes.length} bytes');
-
       setState(() {
         _logoBytes = bytes;
         _logoName = picked.name;
       });
-    }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Logo selecionado: $_logoName')),
-    );
+      print('Imagem selecionada: ${picked.name}');
+      print('Tamanho: ${bytes.length} bytes');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Logo selecionado: ${picked.name}')),
+      );
+    }
   }
 
   Future<void> _enviar() async {
