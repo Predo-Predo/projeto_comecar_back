@@ -1,14 +1,14 @@
 // lib/formulario_assinatura_empresa.dart
 
-import 'dart:convert';
-import 'dart:html' as html;
 import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
-
 import 'formulario_app_empresa.dart';
+
+// Import condicional: usa web_file_picker.dart na Web, e image_picker em IO (mobile/desktop).
+import 'web_file_picker.dart'
+    if (dart.library.io) 'package:image_picker/image_picker.dart';
 
 class FormularioAssinaturaEmpresaPage extends StatefulWidget {
   final int projetoId;
@@ -30,86 +30,98 @@ class _FormularioAssinaturaEmpresaPageState
   final _formKey = GlobalKey<FormState>();
   final _nomeCtrl = TextEditingController();
   final _cnpjCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
-  final _telCtrl = TextEditingController();
+  final _emailContatoCtrl = TextEditingController();
+  final _telefoneCtrl = TextEditingController();
 
-  html.File? _webFile;
-  Uint8List? _previewBytes;
-  bool _carregando = false;
+  Uint8List? _logoBytes;
+  String? _logoName;
+  bool _submetendo = false;
 
-  void _pickLogo() {
-    final uploadInput = html.FileUploadInputElement()
-      ..accept = 'image/*'
-      ..click();
-
-    uploadInput.onChange.listen((event) {
-      final files = uploadInput.files;
-      if (files == null || files.isEmpty) return;
-      final file = files.first;
+  Future<void> _pickLogo() async {
+    if (kIsWeb) {
+      // Web: usa nosso wrapper dart:html
+      final webFile = await pickWebFile(accept: ['image/*']);
+      if (webFile == null) return;
       final reader = html.FileReader();
-      reader.readAsArrayBuffer(file);
-      reader.onLoadEnd.listen((e) {
-        setState(() {
-          _webFile = file;
-          _previewBytes = reader.result as Uint8List;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Selecionado: ${file.name}')),
-        );
+      reader.readAsArrayBuffer(webFile);
+      await reader.onLoad.first;
+      final bytes = reader.result as Uint8List;
+      setState(() {
+        _logoBytes = bytes;
+        _logoName = webFile.name;
       });
-    });
+    } else {
+      // Mobile/Desktop: usa image_picker
+      final XFile? picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        imageQuality: 90,
+      );
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      setState(() {
+        _logoBytes = bytes;
+        _logoName = picked.name;
+      });
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Logo selecionado: $_logoName')),
+    );
   }
 
   Future<void> _enviar() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_webFile == null || _previewBytes == null) {
+    if (_logoBytes == null || _logoName == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Você precisa escolher um logo')),
       );
       return;
     }
 
-    setState(() => _carregando = true);
-
+    setState(() => _submetendo = true);
     final uri = Uri.parse('$BACKEND_URL/empresas/');
     final req = http.MultipartRequest('POST', uri)
       ..fields['nome'] = _nomeCtrl.text.trim()
       ..fields['cnpj'] = _cnpjCtrl.text.trim()
-      ..fields['email_contato'] = _emailCtrl.text.trim()
-      ..fields['telefone'] = _telCtrl.text.trim()
+      ..fields['email_contato'] = _emailContatoCtrl.text.trim()
+      ..fields['telefone'] = _telefoneCtrl.text.trim()
       ..files.add(http.MultipartFile.fromBytes(
         'logo_empresa',
-        _previewBytes!,
-        filename: _webFile!.name,
-        contentType: MediaType(
-          'image',
-          _webFile!.type.split('/').last,
-        ),
+        _logoBytes!,
+        filename: _logoName!,
       ));
 
     try {
       final streamed = await req.send();
       final resp = await http.Response.fromStream(streamed);
       if (resp.statusCode == 201) {
-        final id = jsonDecode(resp.body)['id'] as int;
+        final data = jsonDecode(resp.body);
+        final empresaId = data['id'] as int;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Empresa criada! id=$id')),
+          SnackBar(content: Text('Empresa cadastrada com sucesso!')),
         );
-        Navigator.of(context).pushReplacement(MaterialPageRoute(
-          builder: (_) => FormularioAppEmpresaPage(
-            empresaId: id,
-            projetoId: widget.projetoId,
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => FormularioAppEmpresaPage(
+              empresaId: empresaId,
+              projetoId: widget.projetoId,
+            ),
           ),
-        ));
+        );
       } else {
-        throw Exception('HTTP ${resp.statusCode}: ${resp.body}');
+        throw Exception('Status ${resp.statusCode}: ${resp.body}');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Erro ao cadastrar: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     } finally {
-      setState(() => _carregando = false);
+      setState(() => _submetendo = false);
     }
   }
 
@@ -117,68 +129,82 @@ class _FormularioAssinaturaEmpresaPageState
   void dispose() {
     _nomeCtrl.dispose();
     _cnpjCtrl.dispose();
-    _emailCtrl.dispose();
-    _telCtrl.dispose();
+    _emailContatoCtrl.dispose();
+    _telefoneCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Cadastrar Empresa')),
       backgroundColor: Colors.teal.shade50,
+      appBar: AppBar(title: Text('Cadastrar Empresa'), backgroundColor: Colors.teal),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(24),
         child: Form(
           key: _formKey,
-          child: Column(children: [
-            _buildField(_nomeCtrl, 'Nome da Empresa'),
-            SizedBox(height: 16),
-            _buildField(_cnpjCtrl, 'CNPJ'),
-            SizedBox(height: 16),
-            _buildField(_emailCtrl, 'E-mail de Contato',
-                TextInputType.emailAddress),
-            SizedBox(height: 16),
-            _buildField(_telCtrl, 'Telefone', TextInputType.phone),
-            SizedBox(height: 24),
-            GestureDetector(
-              onTap: _pickLogo,
-              child: Container(
-                height: 150,
+          child: Column(
+            children: [
+              _buildField(_nomeCtrl, 'Nome da Empresa'),
+              SizedBox(height: 16),
+              _buildField(_cnpjCtrl, 'CNPJ'),
+              SizedBox(height: 16),
+              _buildField(_emailContatoCtrl, 'E-mail de Contato', TextInputType.emailAddress),
+              SizedBox(height: 16),
+              _buildField(_telefoneCtrl, 'Telefone', TextInputType.phone),
+              SizedBox(height: 16),
+
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _pickLogo,
+                child: Container(
+                  height: 150,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  clipBehavior: Clip.hardEdge,
+                  child: _logoBytes == null
+                      ? Text('Clique para escolher o logo')
+                      : Image.memory(
+                          _logoBytes!,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                        ),
+                ),
+              ),
+
+              if (_logoName != null) ...[
+                SizedBox(height: 8),
+                Text('Arquivo: $_logoName'),
+              ],
+
+              SizedBox(height: 24),
+              SizedBox(
                 width: double.infinity,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.white,
+                child: ElevatedButton(
+                  onPressed: _submetendo ? null : _enviar,
+                  child: _submetendo
+                      ? CircularProgressIndicator(color: Colors.white)
+                      : Text('Cadastrar Empresa'),
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: Colors.teal,
+                  ),
                 ),
-                alignment: Alignment.center,
-                child: _previewBytes == null
-                    ? Text('Clique para escolher o logo')
-                    : Image.memory(_previewBytes!, fit: BoxFit.cover),
               ),
-            ),
-            SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _carregando ? null : _enviar,
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.teal,
-                ),
-                child: _carregando
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : Text('Cadastrar Empresa'),
-              ),
-            ),
-          ]),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildField(TextEditingController ctrl, String label,
-      [TextInputType type = TextInputType.text]) {
+  Widget _buildField(TextEditingController ctrl, String label, [TextInputType type = TextInputType.text]) {
     return TextFormField(
       controller: ctrl,
       keyboardType: type,
@@ -186,8 +212,7 @@ class _FormularioAssinaturaEmpresaPageState
         labelText: label,
         border: OutlineInputBorder(),
       ),
-      validator: (v) =>
-          v == null || v.trim().isEmpty ? 'Preencha este campo' : null,
+      validator: (v) => v == null || v.trim().isEmpty ? 'Preencha este campo' : null,
     );
   }
 }
