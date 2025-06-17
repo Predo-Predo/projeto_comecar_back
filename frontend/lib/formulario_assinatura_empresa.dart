@@ -205,7 +205,7 @@ class _FormularioAssinaturaEmpresaPageState
                 children: [
                   ElevatedButton(
                     onPressed: _pickLogo,
-                    child: Text('Selecionar Imagem (FORÇADO)'),
+                    child: Text('Selecionar Imagem'),
                   ),
                   SizedBox(height: 16),
                   if (_logoBytes != null)
