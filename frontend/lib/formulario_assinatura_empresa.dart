@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'formulario_app_empresa.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'web_file_picker.dart'
     if (dart.library.io) 'package:image_picker/image_picker.dart';
