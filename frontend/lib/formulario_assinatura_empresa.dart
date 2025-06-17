@@ -10,7 +10,6 @@ import 'formulario_app_empresa.dart';
 import 'web_file_picker.dart'
     if (dart.library.io) 'package:image_picker/image_picker.dart';
 
-/// 👇 Import necessário para Web!
 import 'dart:html' as html;
 
 class FormularioAssinaturaEmpresaPage extends StatefulWidget {
@@ -182,6 +181,7 @@ class _FormularioAssinaturaEmpresaPageState
 
   @override
   Widget build(BuildContext context) {
+    print('Tela carregada!'); // 👈 print adicionado para forçar rebuild no GitHub Pages
     return Scaffold(
       backgroundColor: Colors.teal.shade50,
       appBar: AppBar(title: Text('Cadastrar Empresa'), backgroundColor: Colors.teal),
@@ -201,29 +201,29 @@ class _FormularioAssinaturaEmpresaPageState
               SizedBox(height: 16),
 
               Column(
-  children: [
-    ElevatedButton(
-      onPressed: _pickLogo,
-      child: Text('Selecionar Imagem (FORÇADO)'),
-    ),
-    SizedBox(height: 16),
-    if (_logoBytes != null)
-      Container(
-        height: 150,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Image.memory(
-          _logoBytes!,
-          fit: BoxFit.cover,
-        ),
-      )
-    else
-      Text('Nenhuma imagem selecionada ainda.'),
-  ],
-),
+                children: [
+                  ElevatedButton(
+                    onPressed: _pickLogo,
+                    child: Text('Selecionar Imagem (FORÇADO)'),
+                  ),
+                  SizedBox(height: 16),
+                  if (_logoBytes != null)
+                    Container(
+                      height: 150,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Image.memory(
+                        _logoBytes!,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  else
+                    Text('Nenhuma imagem selecionada ainda.'),
+                ],
+              ),
 
               if (_logoName != null) ...[
                 SizedBox(height: 8),
