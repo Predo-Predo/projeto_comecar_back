@@ -200,28 +200,9 @@ class _FormularioAssinaturaEmpresaPageState
               _buildField(_telefoneCtrl, 'Telefone', TextInputType.phone),
               SizedBox(height: 16),
 
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _pickLogo,
-                child: Container(
-                  height: 150,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  alignment: Alignment.center,
-                  clipBehavior: Clip.hardEdge,
-                  child: _logoBytes == null
-                      ? Text('Clique para escolher o logo')
-                      : Image.memory(
-                          _logoBytes!,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                        ),
-                ),
+              ElevatedButton(
+                onPressed: _pickLogo,
+                child: Text('Selecionar Imagem (FORÇADO)'),
               ),
 
               if (_logoName != null) ...[
