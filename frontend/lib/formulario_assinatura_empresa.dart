@@ -200,10 +200,30 @@ class _FormularioAssinaturaEmpresaPageState
               _buildField(_telefoneCtrl, 'Telefone', TextInputType.phone),
               SizedBox(height: 16),
 
-              ElevatedButton(
-                onPressed: _pickLogo,
-                child: Text('Selecionar Imagem (FORÇADO)'),
-              ),
+              Column(
+  children: [
+    ElevatedButton(
+      onPressed: _pickLogo,
+      child: Text('Selecionar Imagem (FORÇADO)'),
+    ),
+    SizedBox(height: 16),
+    if (_logoBytes != null)
+      Container(
+        height: 150,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Image.memory(
+          _logoBytes!,
+          fit: BoxFit.cover,
+        ),
+      )
+    else
+      Text('Nenhuma imagem selecionada ainda.'),
+  ],
+),
 
               if (_logoName != null) ...[
                 SizedBox(height: 8),
