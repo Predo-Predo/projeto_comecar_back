@@ -11,7 +11,7 @@ app = FastAPI(title="API de Empresas/Apps/Builds")
 # --- CORS restrito novamente ---
 origins = [
     "http://localhost:59598",                       # seu front local em dev
-    "https://3213-177-129-251-249.ngrok-free.app",                    # URL do túnel HTTPS
+    "https://2429-177-129-251-249.ngrok-free.app",                    # URL do túnel HTTPS
     "https://predo-predo.github.io",                # domínio root GitHub Pages
     "https://predo-predo.github.io/projeto_comecar_back",  # repo específico
 ]
