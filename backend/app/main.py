@@ -8,17 +8,10 @@ from .routers import empresas, apps, projetos, auth, users
 
 app = FastAPI(title="API de Empresas/Apps/Builds")
 
-# --- CORS restrito novamente ---
-origins = [
-    "http://localhost:59598",                       # seu front local em dev
-    "https://2429-177-129-251-249.ngrok-free.app",                    # URL do túnel HTTPS
-    "https://predo-predo.github.io",                # domínio root GitHub Pages
-    "https://predo-predo.github.io/projeto_comecar_back",  # repo específico
-]
-
+# --- CORS usando regex para permitir todos os subdomínios do ngrok ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origin_regex=r"https://.*\.ngrok-free\.app|https://predo-predo\.github\.io",  # aceita qualquer subdomínio ngrok
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

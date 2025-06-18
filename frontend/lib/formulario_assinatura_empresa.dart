@@ -24,7 +24,7 @@ class FormularioAssinaturaEmpresaPage extends StatefulWidget {
 class _FormularioAssinaturaEmpresaPageState
     extends State<FormularioAssinaturaEmpresaPage> {
   static const String BACKEND_URL =
-      'https://3213-177-129-251-249.ngrok-free.app';
+      'https://b7a1-177-129-251-249.ngrok-free.app';
 
   final _formKey = GlobalKey<FormState>();
   final _nomeCtrl = TextEditingController();
