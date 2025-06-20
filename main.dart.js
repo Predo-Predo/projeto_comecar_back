@@ -80648,6 +80648,7 @@ a2.m(0,"nome",B.c.eX(b.a.a))
 a2.m(0,"cnpj",B.c.eX(a.a.a))
 a2.m(0,"email_contato",B.c.eX(a0.a.a))
 a2.m(0,"telefone",B.c.eX(a1.a.a))
+a4.r.m(0,"Authorization","Bearer "+k)
 a1=m.x
 a1.toString
 a2=m.y
@@ -80655,7 +80656,6 @@ a2.toString
 a0=A.aAF(new A.k4(A.asa(a1,t.Cm)))
 b=A.Ke("application","octet-stream",null)
 a4.y.push(new A.Kp("logo_empresa",a1.length,a2,b,a0))
-a4.r.m(0,"Authorization","Bearer "+k)
 i=a4
 A.de("Enviando requisi\xe7\xe3o POST...")
 s=7
