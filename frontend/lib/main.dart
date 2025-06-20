@@ -1,4 +1,4 @@
-// lib/main.dart
+// frontend/lib/main.dart
 
 import 'package:flutter/material.dart';
 import 'login.dart';

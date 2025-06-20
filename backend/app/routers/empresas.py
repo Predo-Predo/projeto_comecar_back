@@ -12,8 +12,9 @@ from ..dependencies import get_current_user  # <== função que extrai o user do
 router = APIRouter(prefix="/empresas", tags=["empresas"])
 
 
-@router.post(
+@router.api_route(
     "/",
+    methods=["POST", "OPTIONS"],
     response_model=schemas.Empresa,
     status_code=status.HTTP_201_CREATED
 )

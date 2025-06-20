@@ -1,5 +1,9 @@
 {
-  "python.analysis.extraPaths": [
-    "./backend"        // para que “import app.xxx” aponte para backend/app
-  ]
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+  "python.analysis.extraPaths": ["${workspaceFolder}/backend/app"],
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.useLibraryCodeForTypes": true,
+  "python.analysis.diagnosticMode": "workspace",
+  "python.analysis.typeCheckingMode": "off",
+  "python.languageServer": "Pylance"
 }

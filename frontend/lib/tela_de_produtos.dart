@@ -1,4 +1,4 @@
-// lib/tela_de_produtos.dart
+// frontend/lib/tela_de_produtos.dart
 
 import 'dart:convert';
 import 'package:flutter/material.dart';

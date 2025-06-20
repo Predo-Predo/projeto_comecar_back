@@ -1,8 +1,7 @@
-# backend/app/dependencies.py
-
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from jose import JWTError, jwt
 
 from app import models, database, config
@@ -32,7 +31,7 @@ async def get_current_user(
         raise credentials_exception
 
     result = await db.execute(
-        models.select(models.User).where(models.User.id == int(user_id))
+        select(models.User).where(models.User.id == int(user_id))
     )
     user = result.scalar_one_or_none()
     if user is None:

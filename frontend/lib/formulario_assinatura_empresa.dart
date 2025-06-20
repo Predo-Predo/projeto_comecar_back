@@ -24,7 +24,7 @@ class FormularioAssinaturaEmpresaPage extends StatefulWidget {
 class _FormularioAssinaturaEmpresaPageState
     extends State<FormularioAssinaturaEmpresaPage> {
   static const String BACKEND_URL =
-      'https://1fb1-177-129-251-249.ngrok-free.app';
+      'https://77a9-177-129-251-249.ngrok-free.app';
 
   final _formKey = GlobalKey<FormState>();
   final _nomeCtrl = TextEditingController();
@@ -118,12 +118,20 @@ class _FormularioAssinaturaEmpresaPageState
     setState(() => _submetendo = true);
 
     try {
+      final html.Storage localStorage = html.window.localStorage;
+      final token = localStorage['FlutterSecureStorage.token'];
+
+      if (token == null) {
+        throw Exception('Usuário não autenticado');
+      }
+
       final uri = Uri.parse('$BACKEND_URL/empresas/');
       final req = http.MultipartRequest('POST', uri)
         ..fields['nome'] = _nomeCtrl.text.trim()
         ..fields['cnpj'] = _cnpjCtrl.text.trim()
         ..fields['email_contato'] = _emailContatoCtrl.text.trim()
         ..fields['telefone'] = _telefoneCtrl.text.trim()
+        ..headers['Authorization'] = 'Bearer $token'
         ..files.add(http.MultipartFile.fromBytes(
           'logo_empresa',
           _logoBytes!,
