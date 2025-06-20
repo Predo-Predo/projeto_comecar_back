@@ -80616,10 +80616,11 @@ break}if(m.x==null||m.y==null){m.c.ai(t.Pu).f.jX(A.kS(null,null,null,null,null,B
 s=1
 break}m.ah(new A.ajb(m))
 p=4
-l=window.localStorage.getItem("token")
+l=window.localStorage.getItem("FlutterSecureStorage.token")
 if(l==null){d=A.dT("Usu\xe1rio n\xe3o autenticado")
 throw A.e(d)}k=A.f4("https://63f7-177-129-251-249.ngrok-free.app/empresas/")
 c=A.awl("POST",k)
+c.r.m(0,"Authorization","Bearer "+l)
 d=c.x
 d.m(0,"nome",B.c.eX(m.e.a.a))
 d.m(0,"cnpj",B.c.eX(m.f.a.a))
@@ -80632,7 +80633,6 @@ b.toString
 a=A.aAF(new A.k3(A.asa(d,t.Cm)))
 a0=A.Kd("application","octet-stream",null)
 c.y.push(new A.Ko("logo_empresa",d.length,b,a0,a))
-c.r.m(0,"Authorization","Bearer "+l)
 j=c
 s=7
 return A.U(J.aE4(j),$async$qF)
