@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from .. import models, schemas, database
+from ..dependencies import get_current_user  # <== função que extrai o user do token
 
 router = APIRouter(prefix="/empresas", tags=["empresas"])
 
@@ -23,11 +24,10 @@ async def create_empresa(
     telefone: str = Form(...),
     logo_empresa: UploadFile = File(...),
     db: AsyncSession = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user),  # <== pega o user logado
 ):
-    # Debug: ver o nome e o tamanho do upload
-    print(f"[DEBUG] Recebido logo_empresa.filename={logo_empresa.filename}, content_type={logo_empresa.content_type}")
+    print(f"[DEBUG] Logo recebida: {logo_empresa.filename} ({logo_empresa.content_type})")
 
-    # Verifica duplicata
     result = await db.execute(select(models.Empresa).where(models.Empresa.cnpj == cnpj))
     exists = result.scalars().first()
     if exists:
@@ -36,7 +36,7 @@ async def create_empresa(
             detail="Empresa com este CNPJ já cadastrada"
         )
 
-    # Salva o arquivo de logo em disco
+    # Salva o logo no disco
     logos_dir = os.path.join(os.getcwd(), "logos")
     os.makedirs(logos_dir, exist_ok=True)
     filename = f"{uuid4().hex}_{logo_empresa.filename}"
@@ -45,13 +45,13 @@ async def create_empresa(
     with open(full_path, "wb") as f:
         f.write(contents)
 
-    # Cria a instância de empresa
     nova = models.Empresa(
         nome=nome,
         cnpj=cnpj,
         email_contato=email_contato,
         telefone=telefone,
-        logo_empresa=full_path
+        logo_empresa=full_path,
+        user_id=current_user.id  # <== associa ao usuário autenticado
     )
     db.add(nova)
     await db.commit()
