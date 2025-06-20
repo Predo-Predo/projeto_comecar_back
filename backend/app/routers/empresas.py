@@ -3,7 +3,8 @@
 import os
 from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 from .. import models, schemas, database
 
@@ -20,14 +21,15 @@ async def create_empresa(
     cnpj: str = Form(...),
     email_contato: str = Form(...),
     telefone: str = Form(...),
-    logo_empresa: UploadFile = File(...),         # obrigatório de volta
-    db: Session = Depends(database.get_db),
+    logo_empresa: UploadFile = File(...),
+    db: AsyncSession = Depends(database.get_db),
 ):
     # Debug: ver o nome e o tamanho do upload
     print(f"[DEBUG] Recebido logo_empresa.filename={logo_empresa.filename}, content_type={logo_empresa.content_type}")
 
     # Verifica duplicata
-    exists = db.query(models.Empresa).filter(models.Empresa.cnpj == cnpj).first()
+    result = await db.execute(select(models.Empresa).where(models.Empresa.cnpj == cnpj))
+    exists = result.scalars().first()
     if exists:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -52,8 +54,8 @@ async def create_empresa(
         logo_empresa=full_path
     )
     db.add(nova)
-    db.commit()
-    db.refresh(nova)
+    await db.commit()
+    await db.refresh(nova)
     return nova
 
 
@@ -61,5 +63,6 @@ async def create_empresa(
     "/",
     response_model=list[schemas.Empresa]
 )
-def listar_empresas(db: Session = Depends(database.get_db)):
-    return db.query(models.Empresa).order_by(models.Empresa.created_at.desc()).all()
+async def listar_empresas(db: AsyncSession = Depends(database.get_db)):
+    result = await db.execute(select(models.Empresa).order_by(models.Empresa.created_at.desc()))
+    return result.scalars().all()
