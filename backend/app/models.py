@@ -14,6 +14,9 @@ class Empresa(Base):
     telefone         = Column(Text, nullable=False)
     logo_empresa     = Column(Text, nullable=True)
     created_at       = Column(DateTime(timezone=True), server_default=func.now())
+    
+    user_id          = Column(Integer, ForeignKey("users.id"), nullable=False)  # <== NOVO
+    user             = relationship("User", back_populates="empresas")          # <== NOVO
 
     apps = relationship("App", back_populates="empresa")
 
@@ -58,7 +61,9 @@ class User(Base):
     email           = Column(Text, unique=True, index=True, nullable=False)
     hashed_password = Column(Text, nullable=True)
     nome            = Column(Text, nullable=True)
-    oauth_provider  = Column(Text, nullable=True)  # ex: "google", "apple"
-    oauth_sub       = Column(Text, nullable=True)  # identificador no provedor
+    oauth_provider  = Column(Text, nullable=True)
+    oauth_sub       = Column(Text, nullable=True)
     is_active       = Column(Boolean, default=True)
     created_at      = Column(DateTime(timezone=True), server_default=func.now())
+
+    empresas        = relationship("Empresa", back_populates="user")  # <== NOVO
