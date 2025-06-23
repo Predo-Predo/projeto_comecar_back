@@ -11,8 +11,7 @@ app = FastAPI(title="API de Empresas/Apps/Builds")
 # --- CORS usando regex para permitir todos os subdomínios do ngrok ---
 app.add_middleware(
     CORSMiddleware,
-    #allow_origin_regex=r"https://(.*\.ngrok-free\.app|predo-predo\.github\.io)",
-    allow_origins=["*"],
+    allow_origin_regex=r"https://(.*\.ngrok-free\.app|predo-predo\.github\.io)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
