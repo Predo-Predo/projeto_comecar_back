@@ -1,9 +1,7 @@
-// frontend/lib/tela_de_produtos.dart
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'formulario_assinatura_empresa.dart';
+import 'selecao_de_empresa.dart';
 
 class TelaDeProdutosPage extends StatefulWidget {
   const TelaDeProdutosPage({Key? key}) : super(key: key);
@@ -92,7 +90,7 @@ class _TelaDeProdutosPageState extends State<TelaDeProdutosPage> {
                           onPressed: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => FormularioAssinaturaEmpresaPage(
+                                builder: (_) => SelecaoDeEmpresaPage(
                                   projetoId: projeto['id'],
                                 ),
                               ),
