@@ -1,28 +1,23 @@
-# backend/app/routers/apps.py
-
 import os
 import shutil
-import json
 from uuid import uuid4
 
 import requests
 from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile
 from sqlalchemy.orm import Session
 from slugify import slugify
-from git import Repo, GitCommandError
+from git import Repo
 
 from .. import models, schemas, database
 from ..utils import ensure_empresa_folder, clone_template_repo, _on_rm_error
 
 router = APIRouter(prefix="/apps", tags=["apps"])
 
-# ***********************************************
-# Ajuste para o seu GitHub
+# Config GitHub
 GITHUB_OWNER   = "Predo-Predo"
 GITHUB_REPO    = "projeto_comecar_back"
 WORKFLOW_FILE  = "android-release.yml"
 GITHUB_TOKEN   = os.environ.get("GITHUB_TOKEN")
-# ***********************************************
 
 
 @router.post(
@@ -32,26 +27,25 @@ GITHUB_TOKEN   = os.environ.get("GITHUB_TOKEN")
 )
 async def criar_app(
     empresa_id: int = Form(...),
-    logo_app: UploadFile = File(...),
-    google_service_json: str = Form(...),
-    apple_team_id: str | None = Form(None),
-    apple_key_id: str | None = Form(None),
-    apple_issuer_id: str | None = Form(None),
     projeto_id: int = Form(...),
+    nome: str = Form(...),
+    descricao: str = Form(...),
+    logo_app: UploadFile = File(...),
     db: Session = Depends(database.get_db),
 ):
     # 1) Verifica se a empresa existe
     empresa = db.query(models.Empresa).get(empresa_id)
     if not empresa:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Empresa não encontrada")
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
 
     # 2) Verifica se o projeto existe
     projeto = db.query(models.Projeto).get(projeto_id)
     if not projeto:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projeto não encontrado")
+        raise HTTPException(status_code=404, detail="Projeto não encontrado")
 
-    # 3) Gera slug para o App
-    chave_gerada = slugify(f"{empresa.nome}_{empresa.id}")
+    # 3) Gera o nome do package_name com slug
+    slug_base = slugify(f"{empresa.nome}-{nome}")
+    package_name = f"com.suaempresa.{slug_base}"
 
     # 4) Salva o arquivo de logo em disco
     logos_dir = os.path.join(os.getcwd(), "apps_logos")
@@ -61,35 +55,26 @@ async def criar_app(
     with open(logo_path, "wb") as out:
         out.write(await logo_app.read())
 
-    # 5) Converte o JSON do Firebase (string) em dict
-    try:
-        google_json_parsed = json.loads(google_service_json)
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=400, detail=f"JSON inválido em google_service_json: {e}")
-
-    # 6) Cria o novo App no banco
+    # 5) Cria o App no banco
     novo_app = models.App(
-        empresa_id          = empresa_id,
-        logo_app        = logo_path,
-        app_key             = chave_gerada,
-        bundle_id           = None,
-        package_name        = None,
-        google_service_json = google_json_parsed,
-        apple_team_id       = apple_team_id,
-        apple_key_id        = apple_key_id,
-        apple_issuer_id     = apple_issuer_id,
-        projeto_id          = projeto_id,
-        esta_ativo          = True,
+        empresa_id=empresa_id,
+        projeto_id=projeto_id,
+        nome=nome,
+        descricao=descricao,
+        logo_app=logo_path,
+        package_name=package_name,
+        esta_ativo=True
     )
     db.add(novo_app)
     db.commit()
     db.refresh(novo_app)
 
-    # 7) Clona o template
+    # 6) Clona o repositório do template
     base_empresas_dir = os.path.join(os.getcwd(), "empresas")
     pasta_empresa = ensure_empresa_folder(base_empresas_dir, empresa.id, empresa.nome)
     projeto_slug = slugify(projeto.nome)
     project_clone_path = os.path.join(pasta_empresa, projeto_slug)
+
     try:
         clone_template_repo(projeto.repo_url, project_clone_path)
     except RuntimeError as e:
@@ -97,7 +82,7 @@ async def criar_app(
         db.commit()
         raise HTTPException(status_code=500, detail=str(e))
 
-    # 8) Copia o JSON fixo de credenciais do Play
+    # 7) Copia o JSON fixo de credenciais do Play Store
     android_dir = os.path.join(project_clone_path, "android")
     if not os.path.isdir(android_dir):
         shutil.rmtree(project_clone_path, onerror=_on_rm_error)
@@ -107,6 +92,7 @@ async def criar_app(
             status_code=500,
             detail="Template Flutter não contém pasta 'android/'"
         )
+
     cred_path = os.path.abspath(os.path.join(os.getcwd(), "..", "credentials", "play-service-account.json"))
     try:
         with open(cred_path, "r", encoding="utf-8") as f:
@@ -119,10 +105,11 @@ async def criar_app(
             status_code=500,
             detail="Credenciais do Google Play não encontradas em credentials/play-service-account.json"
         )
+
     with open(os.path.join(android_dir, "play-service-account.json"), "w", encoding="utf-8") as f:
         f.write(play_json)
 
-    # 9) Commit + push
+    # 8) Commit e push
     try:
         repo = Repo(project_clone_path)
         with repo.config_writer() as cw:
@@ -139,7 +126,7 @@ async def criar_app(
         db.commit()
         raise HTTPException(status_code=500, detail=f"Erro no Git push: {e}")
 
-    # 10) Dispara o workflow
+    # 9) Dispara o GitHub Actions
     if not GITHUB_TOKEN:
         raise HTTPException(status_code=500, detail="Variável GITHUB_TOKEN não definida.")
 

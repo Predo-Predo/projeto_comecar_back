@@ -1,13 +1,13 @@
 // frontend/lib/formulario_app_empresa.dart
 
-import 'dart:io';
 import 'dart:convert';
-
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
-
-import 'formulario_app_empresa.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:html' as html;
 
 class FormularioAppEmpresaPage extends StatefulWidget {
   final int empresaId;
@@ -24,65 +24,104 @@ class FormularioAppEmpresaPage extends StatefulWidget {
       _FormularioAppEmpresaPageState();
 }
 
-class _FormularioAppEmpresaPageState
-    extends State<FormularioAppEmpresaPage> {
+class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
+  static const String BACKEND_URL = 'http://127.0.0.1:8000';
+
   final _formKey = GlobalKey<FormState>();
-  File? _logoFile;
-  final _googleJsonCtrl = TextEditingController();
-  final _appleTeamCtrl   = TextEditingController();
-  final _appleKeyCtrl    = TextEditingController();
-  final _appleIssuerCtrl = TextEditingController();
+  final _nomeAppCtrl = TextEditingController();
+  final _descricaoCtrl = TextEditingController();
 
-  bool _submitting = false;
+  Uint8List? _iconeBytes;
+  String? _iconeNome;
+  bool _submetendo = false;
 
-  Future<void> _submitApp() async {
+  final _secureStorage = FlutterSecureStorage();
+
+  Future<void> _pickIcon() async {
+    if (kIsWeb) {
+      final uploadInput = html.FileUploadInputElement()..accept = 'image/*';
+      uploadInput.click();
+      uploadInput.onChange.listen((event) {
+        final file = uploadInput.files?.first;
+        if (file == null) return;
+        final reader = html.FileReader();
+        reader.readAsArrayBuffer(file);
+        reader.onLoadEnd.listen((_) {
+          setState(() {
+            _iconeBytes = reader.result as Uint8List;
+            _iconeNome = file.name;
+          });
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('Ícone selecionado: ${file.name}')));
+        });
+      });
+    } else {
+      final XFile? picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      setState(() {
+        _iconeBytes = bytes;
+        _iconeNome = picked.name;
+      });
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Ícone selecionado: ${picked.name}')));
+    }
+  }
+
+  Future<void> _enviar() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _submitting = true);
 
-    // Monta a requisição multipart
-    final uri = Uri.parse('http://127.0.0.1:8000/apps/');
-    final req = http.MultipartRequest('POST', uri)
-      ..fields['empresa_id']          = widget.empresaId.toString()
-      ..fields['google_service_json'] = _googleJsonCtrl.text.trim()
-      ..fields['apple_team_id']       = _appleTeamCtrl.text.trim()
-      ..fields['apple_key_id']        = _appleKeyCtrl.text.trim()
-      ..fields['apple_issuer_id']     = _appleIssuerCtrl.text.trim()
-      ..fields['projeto_id']          = widget.projetoId.toString();
-
-    // Anexa o arquivo de logo
-    if (_logoFile != null) {
-      req.files.add(await http.MultipartFile.fromPath(
-        'logo_app',      // deve bater com UploadFile = File(...) no backend
-        _logoFile!.path,
-      ));
+    if (_iconeBytes == null || _iconeNome == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Você precisa escolher um ícone')));
+      return;
     }
 
-    // Envia e aguarda resposta
-    final streamed = await req.send();
-    final resp = await http.Response.fromStream(streamed);
-    setState(() => _submitting = false);
+    setState(() => _submetendo = true);
 
-    if (resp.statusCode == 201) {
+    try {
+      final token = await _secureStorage.read(key: 'token');
+      if (token == null) throw Exception('Usuário não autenticado');
+
+      final uri = Uri.parse('$BACKEND_URL/apps/');
+      final req = http.MultipartRequest('POST', uri)
+        ..fields['empresa_id'] = widget.empresaId.toString()
+        ..fields['projeto_id'] = widget.projetoId.toString()
+        ..fields['nome'] = _nomeAppCtrl.text.trim()
+        ..fields['descricao'] = _descricaoCtrl.text.trim()
+        ..headers.addAll({
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'multipart/form-data; charset=utf-8',
+        })
+        ..files.add(http.MultipartFile.fromBytes(
+          'logo_app',
+          _iconeBytes!,
+          filename: _iconeNome!,
+        ));
+
+      final streamed = await req.send();
+      final resp = await http.Response.fromStream(streamed);
+
+      if (resp.statusCode == 201) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('App cadastrado com sucesso!')));
+        Navigator.of(context).pop();
+      } else {
+        throw Exception('Status ${resp.statusCode}: ${resp.body}');
+      }
+    } catch (e, stack) {
+      print('Erro ao enviar: $e\nStack: $stack');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('App criado com sucesso!')),
+        SnackBar(content: Text('Erro ao cadastrar: $e'), backgroundColor: Colors.redAccent),
       );
-      Navigator.of(context).pop();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao criar app: ${resp.body}'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+    } finally {
+      setState(() => _submetendo = false);
     }
   }
 
   @override
   void dispose() {
-    _googleJsonCtrl.dispose();
-    _appleTeamCtrl.dispose();
-    _appleKeyCtrl.dispose();
-    _appleIssuerCtrl.dispose();
+    _nomeAppCtrl.dispose();
+    _descricaoCtrl.dispose();
     super.dispose();
   }
 
@@ -90,128 +129,72 @@ class _FormularioAppEmpresaPageState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.teal.shade50,
-      appBar: AppBar(
-        title: Text('Configurar App'),
-        backgroundColor: Colors.teal,
-        centerTitle: true,
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 24),
-          child: Card(
-            elevation: 6,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  // Seletor de logo do App
-                  GestureDetector(
-                    onTap: () async {
-                      final result = await FilePicker.platform.pickFiles(
-                        type: FileType.image,
-                      );
-                      if (result != null && result.files.single.path != null) {
-                        setState(() {
-                          _logoFile = File(result.files.single.path!);
-                        });
-                      }
-                    },
-                    child: Container(
+      appBar: AppBar(title: Text('Configurar App'), backgroundColor: Colors.teal),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              _buildField(_nomeAppCtrl, 'Nome do App'),
+              SizedBox(height: 16),
+              _buildField(_descricaoCtrl, 'Descrição do App (sobre o app)', TextInputType.multiline, 3),
+              SizedBox(height: 16),
+              Column(
+                children: [
+                  ElevatedButton(
+                    onPressed: _pickIcon,
+                    child: Text('Selecionar Ícone'),
+                  ),
+                  SizedBox(height: 16),
+                  if (_iconeBytes != null)
+                    Container(
                       height: 150,
                       width: double.infinity,
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: _logoFile == null
-                          ? Center(child: Text('Clique para escolher o logo'))
-                          : ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.file(_logoFile!,
-                                  fit: BoxFit.cover),
-                            ),
-                    ),
-                  ),
-                  SizedBox(height: 16),
-
-                  // Google Service JSON
-                  TextFormField(
-                    controller: _googleJsonCtrl,
-                    decoration: InputDecoration(
-                      labelText: 'Google Service JSON',
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                    maxLines: 3,
-                    validator: (v) =>
-                        v == null || v.trim().isEmpty ? 'Obrigatório' : null,
-                  ),
-                  SizedBox(height: 16),
-
-                  // Apple Team ID
-                  _buildField(
-                    controller: _appleTeamCtrl,
-                    label: 'Apple Team ID',
-                  ),
-                  SizedBox(height: 16),
-
-                  // Apple Key ID
-                  _buildField(
-                    controller: _appleKeyCtrl,
-                    label: 'Apple Key ID',
-                  ),
-                  SizedBox(height: 16),
-
-                  // Apple Issuer ID
-                  _buildField(
-                    controller: _appleIssuerCtrl,
-                    label: 'Apple Issuer ID',
-                  ),
-                  SizedBox(height: 24),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _submitting ? null : _submitApp,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: _submitting
-                          ? CircularProgressIndicator(color: Colors.white)
-                          : Text('Cadastrar App',
-                              style: TextStyle(fontSize: 16)),
-                    ),
-                  ),
-                ]),
+                      child: Image.memory(_iconeBytes!, fit: BoxFit.cover),
+                    )
+                  else
+                    Text('Nenhum ícone selecionado ainda.'),
+                ],
               ),
-            ),
+              if (_iconeNome != null) ...[
+                SizedBox(height: 8),
+                Text('Arquivo: $_iconeNome'),
+              ],
+              SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _submetendo ? null : _enviar,
+                  child: _submetendo
+                      ? CircularProgressIndicator(color: Colors.white)
+                      : Text('Cadastrar App'),
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: Colors.teal,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildField({
-    required TextEditingController controller,
-    required String label,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
+  Widget _buildField(TextEditingController ctrl, String label,
+      [TextInputType type = TextInputType.text, int maxLines = 1]) {
     return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
+      controller: ctrl,
+      keyboardType: type,
+      maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.teal),
-        ),
+        border: OutlineInputBorder(),
       ),
       validator: (v) =>
           v == null || v.trim().isEmpty ? 'Preencha este campo' : null,

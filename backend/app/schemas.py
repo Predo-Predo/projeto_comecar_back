@@ -1,5 +1,3 @@
-# backend/app/schemas.py
-
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, EmailStr
@@ -46,21 +44,17 @@ class Projeto(ProjetoBase):
 
 class AppBase(BaseModel):
     empresa_id: int
-    logo_app: Optional[str] = None
-    google_service_json: Optional[dict] = None
-    apple_team_id: Optional[str] = None
-    apple_key_id: Optional[str] = None
-    apple_issuer_id: Optional[str] = None
     projeto_id: int
+    nome: str
+    descricao: str
+    logo_app: Optional[str] = None
+    package_name: Optional[str] = None
 
 class AppCreate(AppBase):
     pass
 
 class App(AppBase):
     id: int
-    app_key: str
-    bundle_id: Optional[str] = None
-    package_name: Optional[str] = None
     esta_ativo: bool
     created_at: datetime
 
@@ -94,6 +88,7 @@ class TokenData(BaseModel):
 
 
 # ———— novo schema para login ————
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
