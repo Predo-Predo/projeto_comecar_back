@@ -80679,7 +80679,7 @@ s=7
 return A.T($.aqs().z4(0,"token",m.Q.CZ(null,null,null,null,null,null)),$async$od)
 case 7:l=a5
 if(l==null){c=A.dU("Usu\xe1rio n\xe3o autenticado")
-throw A.e(c)}k=A.f4("https://7f33-177-129-251-249.ngrok-free.app/empresas/")
+throw A.e(c)}k=A.f4("https://081d-177-129-251-249.ngrok-free.app/empresas/")
 b=A.awv("POST",k)
 c=b.x
 c.m(0,"nome",B.c.eX(m.e.a.a))
@@ -80799,7 +80799,7 @@ A.Dc.prototype={
 qZ(){var s=0,r=A.Q(t.H),q=1,p=[],o=this,n,m,l,k,j,i,h,g
 var $async$qZ=A.M(function(a,b){if(a===1){p.push(b)
 s=q}while(true)switch(s){case 0:o.ah(new A.akK(o))
-k=A.f4("https://7f33-177-129-251-249.ngrok-free.app/auth/login")
+k=A.f4("https://081d-177-129-251-249.ngrok-free.app/auth/login")
 j=t.N
 i=A.ao(["Content-Type","application/json; charset=UTF-8"],j,j)
 s=2
@@ -80866,7 +80866,7 @@ A.akN.prototype={
 V_(a){var s=0,r=A.Q(t.H),q=this,p,o,n,m,l
 var $async$$1=A.M(function(b,c){if(b===1)return A.N(c,r)
 while(true)switch(s){case 0:p=B.C1.gafC(t.v_.a(a))
-o=A.f4("https://7f33-177-129-251-249.ngrok-free.app/auth/google/callback")
+o=A.f4("https://081d-177-129-251-249.ngrok-free.app/auth/google/callback")
 n=t.N
 m=A.ao(["Content-Type","application/json; charset=UTF-8"],n,n)
 s=2
