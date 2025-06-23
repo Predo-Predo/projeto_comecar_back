@@ -85,16 +85,6 @@ class UserOut(BaseModel):
     class Config:
         from_attributes = True
 
-class User(BaseModel):
-    id: int
-    email: EmailStr
-    nome: Optional[str]
-    is_active: bool
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
