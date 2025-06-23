@@ -21,7 +21,7 @@ class _LoginPageState extends State<LoginPage> {
   final _storage = FlutterSecureStorage();
   bool _loading = false;
 
-  static const String BACKEND_URL = 'https://77a9-177-129-251-249.ngrok-free.app';
+  static const String BACKEND_URL = 'https://b791-177-129-251-249.ngrok-free.app';
 
   Future<void> _loginWithEmail() async {
     setState(() => _loading = true);
