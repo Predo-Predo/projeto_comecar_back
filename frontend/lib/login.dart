@@ -39,6 +39,7 @@ class _LoginPageState extends State<LoginPage> {
     if (resp.statusCode == 200) {
       try {
         final data = jsonDecode(resp.body);
+        await _storage.delete(key: 'token'); // limpa token anterior
         await _storage.write(key: 'token', value: data['access_token']);
         Navigator.pushReplacementNamed(context, '/home');
       } catch (e) {
@@ -70,6 +71,7 @@ class _LoginPageState extends State<LoginPage> {
 
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
+        await _storage.delete(key: 'token'); // limpa token anterior
         await _storage.write(key: 'token', value: data['access_token']);
         Navigator.pushReplacementNamed(context, '/home');
       } else {
