@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from .. import models, schemas, database
-from ..dependencies import get_current_user  # <== importa o user logado
+from ..dependencies import get_current_user  # importa o user logado
 
 router = APIRouter(prefix="/empresas", tags=["empresas"])
 
@@ -24,7 +24,7 @@ async def create_empresa(
     telefone: str = Form(...),
     logo_empresa: UploadFile = File(...),
     db: AsyncSession = Depends(database.get_db),
-    current_user: models.User = Depends(get_current_user),  # <== injeta user logado
+    current_user: models.User = Depends(get_current_user),  # injeta user logado
 ):
     print(f"[DEBUG] Recebido logo_empresa.filename={logo_empresa.filename}, content_type={logo_empresa.content_type}")
 
@@ -53,7 +53,7 @@ async def create_empresa(
         email_contato=email_contato,
         telefone=telefone,
         logo_empresa=full_path,
-        user_id=current_user.id  # <== salva o user_id automaticamente
+        user_id=current_user.id
     )
     db.add(nova)
     await db.commit()
@@ -65,6 +65,13 @@ async def create_empresa(
     "/",
     response_model=list[schemas.Empresa]
 )
-async def listar_empresas(db: AsyncSession = Depends(database.get_db)):
-    result = await db.execute(select(models.Empresa).order_by(models.Empresa.created_at.desc()))
+async def listar_empresas(
+    db: AsyncSession = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)  # <== adiciona aqui
+):
+    result = await db.execute(
+        select(models.Empresa)
+        .where(models.Empresa.user_id == current_user.id)
+        .order_by(models.Empresa.created_at.desc())
+    )
     return result.scalars().all()
