@@ -19,16 +19,23 @@ router = APIRouter(prefix="/empresas", tags=["empresas"])
     status_code=status.HTTP_201_CREATED
 )
 async def create_empresa(
-    nome: str = Form(...),
-    cnpj: str = Form(...),
-    email_contato: str = Form(...),
-    telefone: str = Form(...),
+    nome_b: bytes = Form(...),
+    cnpj_b: bytes = Form(...),
+    email_contato_b: bytes = Form(...),
+    telefone_b: bytes = Form(...),
     logo_empresa: UploadFile = File(...),
     db: AsyncSession = Depends(database.get_db),
-    current_user: models.User = Depends(get_current_user),  # <== pega o user logado
+    current_user: models.User = Depends(get_current_user),
 ):
+    # ✅ Converte os campos corretamente para UTF-8
+    nome = nome_b.decode('utf-8')
+    cnpj = cnpj_b.decode('utf-8')
+    email_contato = email_contato_b.decode('utf-8')
+    telefone = telefone_b.decode('utf-8')
+
     print(f"[DEBUG] Logo recebida: {logo_empresa.filename} ({logo_empresa.content_type})")
 
+    # Verifica se já existe empresa com o mesmo CNPJ
     result = await db.execute(select(models.Empresa).where(models.Empresa.cnpj == cnpj))
     exists = result.scalars().first()
     if exists:
@@ -46,6 +53,7 @@ async def create_empresa(
     with open(full_path, "wb") as f:
         f.write(contents)
 
+    # Cria e salva a nova empresa no banco
     nova = models.Empresa(
         nome=nome,
         cnpj=cnpj,

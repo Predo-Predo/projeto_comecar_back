@@ -29,7 +29,7 @@ class _LoginPageState extends State<LoginPage> {
     final uri = Uri.parse('$BACKEND_URL/auth/login');
     final resp = await http.post(
       uri,
-      headers: {'Content-Type': 'application/json'},
+      headers: {'Content-Type': 'application/json; charset=UTF-8'},
       body: jsonEncode({
         'email': _emailCtrl.text,
         'password': _passCtrl.text,
@@ -64,7 +64,7 @@ class _LoginPageState extends State<LoginPage> {
 
       final resp = await http.post(
         Uri.parse('$BACKEND_URL/auth/google/callback'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
         body: jsonEncode({'token': idToken}),
       );
 
