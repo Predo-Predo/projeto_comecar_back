@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <base href="/projeto_comecar_back/"><!-- use o seu base href certo -->
+  <base href="/projeto_comecar_back/">
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=Edge">
   <meta name="description" content="A new Flutter project.">
 
-  <!-- Google Identity Services (GIS) -->
+  <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <!-- iOS meta tags & icons -->
@@ -23,14 +23,7 @@
 </head>
 <body>
   <script>
-    // 1) Callback que recebe o ID token e dispara evento para o Flutter
-    function onGoogleSignIn(response) {
-      window.dispatchEvent(
-        new CustomEvent('googleLogin', { detail: response.credential })
-      );
-    }
-
-    // 2) Função que o Flutter chama para abrir o popup
+    // Função que o Flutter chama para abrir o login Google
     function showGoogleLogin() {
       google.accounts.id.initialize({
         client_id: '669723152550-94kktlea6u9enh9tctf6qh8lb50hg65n.apps.googleusercontent.com',
@@ -38,29 +31,19 @@
           const event = new CustomEvent('googleLogin', { detail: response.credential });
           window.dispatchEvent(event);
         },
-        ux_mode: 'popup', // pode ser 'redirect' se quiser redirecionar
+        ux_mode: 'popup'
       });
 
-    // Força exibir seleção de conta (mesmo se já logado)
       google.accounts.id.prompt((notification) => {
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
           google.accounts.id.disableAutoSelect();
-          google.accounts.id.prompt(); // tenta novamente com mais força
+          google.accounts.id.prompt();
         }
       });
     }
-
-    // 3) Inicializa o GIS assim que a página carrega
-    window.onload = function() {
-      google.accounts.id.initialize({
-        client_id: '669723152550-94kktlea6u9enh9tctf6qh8lb50hg65n.apps.googleusercontent.com',
-        callback: onGoogleSignIn,
-        ux_mode: 'popup'
-      });
-    };
   </script>
 
-  <!-- Bootstrap do Flutter (não mexer) -->
+  <!-- Bootstrap do Flutter -->
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
