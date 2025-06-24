@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'formulario_app_empresa.dart';
-import 'formulario_assinatura_empresa.dart'; // se quiser usar esse botão
+import 'formulario_assinatura_empresa.dart';
 
 class SelecaoDeEmpresaPage extends StatefulWidget {
   final int projetoId;
@@ -46,6 +46,12 @@ class _SelecaoDeEmpresaPageState extends State<SelecaoDeEmpresaPage> {
     }
   }
 
+  void _atualizarEmpresas() {
+    setState(() {
+      _futureEmpresas = _fetchEmpresas();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,9 +66,15 @@ class _SelecaoDeEmpresaPageState extends State<SelecaoDeEmpresaPage> {
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () {
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const FormularioAssinaturaEmpresaPage(),
-              ));
+              Navigator.of(context)
+                  .push(MaterialPageRoute(
+                    builder: (_) => FormularioAssinaturaEmpresaPage(projetoId: widget.projetoId),
+                  ))
+                  .then((result) {
+                if (result == true) {
+                  _atualizarEmpresas(); // <- atualiza lista após cadastro
+                }
+              });
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.teal.shade100,

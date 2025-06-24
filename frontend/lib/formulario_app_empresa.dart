@@ -25,7 +25,7 @@ class FormularioAppEmpresaPage extends StatefulWidget {
 }
 
 class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
-  static const String BACKEND_URL = 'http://127.0.0.1:8000';
+  static const String BACKEND_URL = 'https://311d-177-129-251-249.ngrok-free.app';
 
   final _formKey = GlobalKey<FormState>();
   final _nomeAppCtrl = TextEditingController();

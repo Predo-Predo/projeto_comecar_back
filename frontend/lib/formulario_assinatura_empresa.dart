@@ -9,8 +9,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:html' as html;
 
-import 'formulario_app_empresa.dart';
-
 class FormularioAssinaturaEmpresaPage extends StatefulWidget {
   final int projetoId;
   const FormularioAssinaturaEmpresaPage({Key? key, required this.projetoId}) : super(key: key);
@@ -20,7 +18,7 @@ class FormularioAssinaturaEmpresaPage extends StatefulWidget {
 }
 
 class _FormularioAssinaturaEmpresaPageState extends State<FormularioAssinaturaEmpresaPage> {
-  static const String BACKEND_URL = 'https://081d-177-129-251-249.ngrok-free.app';
+  static const String BACKEND_URL = 'https://311d-177-129-251-249.ngrok-free.app';
 
   final _formKey = GlobalKey<FormState>();
   final _nomeCtrl = TextEditingController();
@@ -100,17 +98,8 @@ class _FormularioAssinaturaEmpresaPageState extends State<FormularioAssinaturaEm
       final resp = await http.Response.fromStream(streamed);
 
       if (resp.statusCode == 201) {
-        final data = jsonDecode(resp.body);
-        final empresaId = data['id'] as int;
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Empresa cadastrada com sucesso!')));
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => FormularioAppEmpresaPage(
-              empresaId: empresaId,
-              projetoId: widget.projetoId,
-            ),
-          ),
-        );
+        Navigator.of(context).pop(true); // <- retorna para tela anterior
       } else {
         throw Exception('Status ${resp.statusCode}: ${resp.body}');
       }
