@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <base href="/projeto_comecar_back/">
+  <base href="/">
 
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=Edge">
   <meta name="description" content="A new Flutter project.">
 
   <!-- Google Identity Services -->
-  <meta name="google-signin-client_id" content="669723152550-94kktlea6u9enh9tctf6qh8lb50hg65n.apps.googleusercontent.com">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <!-- iOS meta tags & icons -->
@@ -24,19 +23,26 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
-  <script>
-    // Função que o Flutter chama para abrir o login Google
-    function showGoogleLogin() {
-    google.accounts.id.initialize({
-      client_id: 'SEU_CLIENT_ID',
-      callback: (response) => {
-        const event = new CustomEvent('googleLogin', { detail: response.credential });
-        window.dispatchEvent(event);
-      }
-    });
+  <div id="g_id_onload"
+       data-client_id="669723152550-94kktlea6u9enh9tctf6qh8lb50hg65n.apps.googleusercontent.com"
+       data-callback="handleCredentialResponse"
+       data-auto_prompt="false">
+  </div>
 
-    google.accounts.id.prompt(); // mostra o popup pequeno
-  }
+  <div class="g_id_signin"
+       data-type="standard"
+       data-shape="rectangular"
+       data-theme="outline"
+       data-text="sign_in_with"
+       data-size="large"
+       data-logo_alignment="left">
+  </div>
+
+  <script>
+    function handleCredentialResponse(response) {
+      const event = new CustomEvent('googleLogin', { detail: response.credential });
+      window.dispatchEvent(event);
+    }
   </script>
 
   <!-- Bootstrap do Flutter -->
