@@ -27,22 +27,16 @@
   <script>
     // Função que o Flutter chama para abrir o login Google
     function showGoogleLogin() {
-      google.accounts.id.initialize({
-        client_id: '669723152550-94kktlea6u9enh9tctf6qh8lb50hg65n.apps.googleusercontent.com',
-        callback: (response) => {
-          const event = new CustomEvent('googleLogin', { detail: response.credential });
-          window.dispatchEvent(event);
-        },
-        ux_mode: 'popup'
-      });
+    google.accounts.id.initialize({
+      client_id: 'SEU_CLIENT_ID',
+      callback: (response) => {
+        const event = new CustomEvent('googleLogin', { detail: response.credential });
+        window.dispatchEvent(event);
+      }
+    });
 
-      google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          google.accounts.id.disableAutoSelect();
-          google.accounts.id.prompt();
-        }
-      });
-    }
+    google.accounts.id.prompt(); // mostra o popup pequeno
+  }
   </script>
 
   <!-- Bootstrap do Flutter -->
