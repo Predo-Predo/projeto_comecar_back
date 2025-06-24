@@ -7,7 +7,7 @@ import 'dart:js' as js;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'tela_de_produtos.dart'; // import para não quebrar nada
+import 'tela_de_produtos.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -20,6 +20,7 @@ class _LoginPageState extends State<LoginPage> {
   final _passCtrl = TextEditingController();
   final _storage = FlutterSecureStorage();
   bool _loading = false;
+  bool _googleLoginHandled = false;
 
   static const String BACKEND_URL = 'https://311d-177-129-251-249.ngrok-free.app';
 
@@ -39,7 +40,7 @@ class _LoginPageState extends State<LoginPage> {
     if (resp.statusCode == 200) {
       try {
         final data = jsonDecode(resp.body);
-        await _storage.delete(key: 'token'); // limpa token anterior
+        await _storage.delete(key: 'token');
         await _storage.write(key: 'token', value: data['access_token']);
         Navigator.pushReplacementNamed(context, '/home');
       } catch (e) {
@@ -57,37 +58,71 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _loginWithGoogle() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _googleLoginHandled = false;
+    });
 
     void listener(html.Event event) async {
-      html.CustomEvent customEvent = event as html.CustomEvent;
-      final String idToken = customEvent.detail;
+      print("[GOOGLE LOGIN] Evento recebido");
 
-      final resp = await http.post(
-        Uri.parse('$BACKEND_URL/auth/google/callback'),
-        headers: {'Content-Type': 'application/json; charset=UTF-8'},
-        body: jsonEncode({'token': idToken}),
-      );
+      html.window.removeEventListener('googleLogin', listener);
 
-      if (resp.statusCode == 200) {
-        final data = jsonDecode(resp.body);
-        await _storage.delete(key: 'token'); // limpa token anterior
-        await _storage.write(key: 'token', value: data['access_token']);
-        Navigator.pushReplacementNamed(context, '/home');
-      } else {
+      try {
+        final customEvent = event as html.CustomEvent;
+        final String idToken = customEvent.detail;
+
+        final resp = await http.post(
+          Uri.parse('$BACKEND_URL/auth/google/callback'),
+          headers: {'Content-Type': 'application/json; charset=UTF-8'},
+          body: jsonEncode({'token': idToken}),
+        );
+
+        if (resp.statusCode == 200) {
+          final data = jsonDecode(resp.body);
+          await _storage.delete(key: 'token');
+          await _storage.write(key: 'token', value: data['access_token']);
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro no login Google: ${resp.statusCode}')),
+          );
+        }
+      } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro no login Google: ${resp.statusCode}')),
+          SnackBar(content: Text('Erro ao processar login Google: $e')),
         );
       }
 
-      html.window.removeEventListener('googleLogin', listener);
-      setState(() => _loading = false);
+      setState(() {
+        _googleLoginHandled = true;
+        _loading = false;
+      });
     }
 
     html.window.addEventListener('googleLogin', listener);
 
-    // Chama função JS segura que dispara o login Google (se disponível)
-    js.context.callMethod('showGoogleLogin');
+    // Timeout de segurança para impedir loading infinito
+    Future.delayed(Duration(seconds: 15), () {
+      if (!_googleLoginHandled) {
+        html.window.removeEventListener('googleLogin', listener);
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Tempo limite ao tentar login com Google')),
+        );
+      }
+    });
+
+    // Chama o JS que dispara o login
+    try {
+      js.context.callMethod('showGoogleLogin');
+      print("[GOOGLE LOGIN] JS chamado com sucesso");
+    } catch (e) {
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao iniciar login com Google: $e')),
+      );
+    }
   }
 
   @override
