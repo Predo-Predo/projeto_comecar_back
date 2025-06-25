@@ -80122,7 +80122,7 @@ e.m(0,"projeto_id",B.i.k(m.a.d))
 e.m(0,"nome",B.c.hb(m.e.a.a))
 e.m(0,"descricao",B.c.hb(m.f.a.a))
 e=t.N
-d.r.N(0,A.am(["Authorization","Bearer "+l,"Content-Type","multipart/form-data; charset=utf-8"],e,e))
+d.r.N(0,A.am(["Authorization","Bearer "+l],e,e))
 e=m.r
 e.toString
 c=m.w
