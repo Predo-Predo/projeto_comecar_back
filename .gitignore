@@ -354,3 +354,4 @@ cython_debug/
 backend/credentials/play-service-account.json
 
 backend/play_creds/
+credentials/play-service-account.json
