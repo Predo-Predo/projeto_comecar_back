@@ -1,3 +1,24 @@
+# backend/app/background.py
+
+import os
+import shutil
+import requests
+from git import Repo
+from slugify import slugify
+
+from sqlalchemy.orm import Session
+from sqlalchemy import select
+
+from . import models
+from .database import SessionLocal  # <- agora usando sessão síncrona
+from .utils import ensure_empresa_folder, clone_template_repo, _on_rm_error
+
+# GitHub config
+GITHUB_OWNER = "Predo-Predo"
+GITHUB_REPO = "projeto_exemplo"
+WORKFLOW_FILE = "android-release.yml"
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
+
 # ... [importações e configurações anteriores permanecem inalteradas]
 
 def publicar_app_na_playstore(app_id: int):
