@@ -1,23 +1,4 @@
-# backend/app/background.py
-
-import os
-import shutil
-import requests
-from git import Repo
-from slugify import slugify
-
-from sqlalchemy.orm import Session
-from sqlalchemy import select
-
-from . import models
-from .database import SessionLocal  # <- agora usando sessão síncrona
-from .utils import ensure_empresa_folder, clone_template_repo, _on_rm_error
-
-# GitHub config
-GITHUB_OWNER = "Predo-Predo"
-GITHUB_REPO = "projeto_exemplo"
-WORKFLOW_FILE = "android-release.yml"
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
+# ... [importações e configurações anteriores permanecem inalteradas]
 
 def publicar_app_na_playstore(app_id: int):
     db: Session = SessionLocal()
@@ -56,6 +37,20 @@ def publicar_app_na_playstore(app_id: int):
             print("[ERRO] Pasta 'android/' não encontrada no template")
             return
 
+        # 👇 Criar empresa.json com os dados da empresa
+        empresa_data = {
+            "nome": empresa.nome,
+            "cnpj": empresa.cnpj,
+            "email_contato": empresa.email_contato,
+            "telefone": empresa.telefone,
+            "logo_empresa": empresa.logo_empresa
+        }
+        empresa_json_path = os.path.join(project_clone_path, "empresa.json")
+        with open(empresa_json_path, "w", encoding="utf-8") as f:
+            import json
+            json.dump(empresa_data, f, ensure_ascii=False, indent=2)
+
+        # 👇 Copiar JSON de credenciais do Play Store
         cred_path = os.path.abspath(os.path.join(os.getcwd(), "..", "credentials", "play-service-account.json"))
         try:
             with open(cred_path, "r", encoding="utf-8") as f:
@@ -70,6 +65,7 @@ def publicar_app_na_playstore(app_id: int):
         with open(os.path.join(android_dir, "play-service-account.json"), "w", encoding="utf-8") as f:
             f.write(play_json)
 
+        # 👇 Git commit e push
         try:
             repo = Repo(project_clone_path)
             with repo.config_writer() as cw:
@@ -77,6 +73,7 @@ def publicar_app_na_playstore(app_id: int):
                 cw.set_value("user", "email", "action-bot@example.com")
 
             repo.git.add("android/play-service-account.json")
+            repo.git.add("empresa.json")
             repo.git.add(all=True)
             repo.index.commit(f"Configurar App {app.id} para empresa {empresa.id}")
             repo.remote(name="origin").push(refspec="HEAD:main")
@@ -87,6 +84,7 @@ def publicar_app_na_playstore(app_id: int):
             print(f"[ERRO] Git push falhou: {e}")
             return
 
+        # 👇 Disparo do GitHub Actions
         if not GITHUB_TOKEN:
             print("[ERRO] GITHUB_TOKEN não definido")
             return
@@ -100,8 +98,7 @@ def publicar_app_na_playstore(app_id: int):
             "Authorization": f"Bearer {GITHUB_TOKEN}"
         }
         payload = {
-            "ref": "main",
-            "inputs": {"company_id": str(empresa.id)}
+            "ref": "main"
         }
         resp = requests.post(dispatch_url, json=payload, headers=headers)
         if resp.status_code not in (204, 201):
