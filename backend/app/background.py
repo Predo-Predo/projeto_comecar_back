@@ -15,7 +15,7 @@ from .utils import ensure_empresa_folder, clone_template_repo, _on_rm_error
 
 # GitHub config
 GITHUB_OWNER = "Predo-Predo"
-GITHUB_REPO = "projeto_comecar_back"
+GITHUB_REPO = "projeto_exemplo"
 WORKFLOW_FILE = "android-release.yml"
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
