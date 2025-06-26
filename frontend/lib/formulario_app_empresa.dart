@@ -25,7 +25,7 @@ class FormularioAppEmpresaPage extends StatefulWidget {
 }
 
 class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
-  static const String BACKEND_URL = 'https://311d-177-129-251-249.ngrok-free.app';
+  static const String BACKEND_URL = 'https://c3ee-177-129-251-249.ngrok-free.app';
 
   final _formKey = GlobalKey<FormState>();
   final _nomeAppCtrl = TextEditingController();
@@ -90,7 +90,7 @@ class _FormularioAppEmpresaPageState extends State<FormularioAppEmpresaPage> {
         ..fields['descricao'] = _descricaoCtrl.text.trim()
         ..headers.addAll({
           'Authorization': 'Bearer $token',
-          'Content-Type': 'multipart/form-data; charset=utf-8',
+          
         })
         ..files.add(http.MultipartFile.fromBytes(
           'logo_app',
